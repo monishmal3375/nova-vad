@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.DS_Store
+data/tmp/
+data/speech/
+data/noise/
+data/clean_speech/
+data/clean_noise/
+models/*.pkl
+models/*.pt
+*.egg-info/
+dist/
+build/
+.env

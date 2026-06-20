@@ -160,7 +160,7 @@ NOVA-VAD solves all three simultaneously. No existing open-source tool does this
 
 ## 👤 Author
 
-**Monish Malla** — Incoming CS student at Purdue Polytechnic, building at the intersection of AI and security.
+**Monish**
 
 ---
 

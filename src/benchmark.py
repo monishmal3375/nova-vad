@@ -209,6 +209,63 @@ def run_pyannote(test_speech: list, test_noise: list,
     elapsed = time.time() - start
     return compute_metrics(results, elapsed, "Pyannote VAD")
 
+# ── SpeechBrain VAD ────────────────────────────────────────────────────────
+def run_speechbrain(test_speech: list, test_noise: list,
+                    speech_dir: str, noise_dir: str) -> dict:
+    import torch
+    import soundfile as sf
+    import librosa
+    import numpy as np
+    from speechbrain.inference.VAD import VAD
+
+    # load pretrained SpeechBrain VAD
+    vad_model = VAD.from_hparams(
+        source="speechbrain/vad-crdnn-libriparty",
+        savedir="models/speechbrain_vad"
+    )
+
+    results = []
+    start   = time.time()
+
+    def predict(path):
+        try:
+            # load and resample to 16kHz
+            audio, sr = sf.read(path)
+            if audio.ndim > 1:
+                audio = audio[:, 0]
+            if sr != 16000:
+                audio = librosa.resample(audio, orig_sr=sr, target_sr=16000)
+                sr = 16000
+
+            # save temp file for speechbrain
+            tmp_path = "data/tmp_sb.wav"
+            import soundfile as sf2
+            sf2.write(tmp_path, audio, sr)
+
+            # run VAD
+            boundaries = vad_model.get_speech_segments(tmp_path)
+            pred = 1 if len(boundaries) > 0 else 0
+
+            # cleanup
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+            return pred
+        except Exception as e:
+            print(f"    Error on {path}: {e}")
+            return 0
+
+    for f in test_speech:
+        pred = predict(os.path.join(speech_dir, f))
+        results.append({"true": 1, "pred": pred, "file": f})
+
+    for f in test_noise:
+        pred = predict(os.path.join(noise_dir, f))
+        results.append({"true": 0, "pred": pred, "file": f})
+
+    elapsed = time.time() - start
+    return compute_metrics(results, elapsed, "SpeechBrain VAD")
+
 
 # ── Compute Metrics ────────────────────────────────────────────────────────
 def compute_metrics(results: list, elapsed: float, name: str) -> dict:
@@ -259,7 +316,11 @@ def print_benchmark(results: list, n_test: int):
     print(f"\n  NOVA-VAD vs WebRTC:   {'+' if nova['accuracy'] >= webrtc['accuracy'] else ''}{round(nova['accuracy'] - webrtc['accuracy'], 2)}%")
     print(f"  NOVA-VAD vs Silero:   {'+' if nova['accuracy'] >= silero['accuracy'] else ''}{round(nova['accuracy'] - silero['accuracy'], 2)}%")
     if pyannote:
-        print(f"  NOVA-VAD vs Pyannote: {'+' if nova['accuracy'] >= pyannote['accuracy'] else ''}{round(nova['accuracy'] - pyannote['accuracy'], 2)}%")
+        print(f"  NOVA-VAD vs Pyannote:     {'+' if nova['accuracy'] >= pyannote['accuracy'] else ''}{round(nova['accuracy'] - pyannote['accuracy'], 2)}%")
+
+    speechbrain = next((r for r in results if r["name"] == "SpeechBrain VAD"), None)
+    if speechbrain:
+        print(f"  NOVA-VAD vs SpeechBrain:  {'+' if nova['accuracy'] >= speechbrain['accuracy'] else ''}{round(nova['accuracy'] - speechbrain['accuracy'], 2)}%")
     print(f"\n  Explainability:")
     print(f"    WebRTC:   ❌ black box")
     print(f"    Silero:   ❌ black box")
@@ -313,4 +374,8 @@ if __name__ == "__main__":
     pyannote_r = run_pyannote(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
     print(f"  Done — {pyannote_r['accuracy']}%")
 
-    print_benchmark([webrtc_r, nova_r, silero_r, pyannote_r], n_test)
+    print("\n  Running SpeechBrain VAD...")
+    speechbrain_r = run_speechbrain(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    print(f"  Done — {speechbrain_r['accuracy']}%")
+
+    print_benchmark([webrtc_r, nova_r, silero_r, pyannote_r, speechbrain_r], n_test)

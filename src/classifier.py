@@ -237,3 +237,82 @@ def train_and_evaluate(speech_dir: str, noise_dir: str) -> dict:
         "tp": int(tp), "tn": int(tn),
         "fp": int(fp), "fn": int(fn)
     }
+
+def extract_features_from_array(audio: np.ndarray, sr: int) -> np.ndarray:
+    """
+    Same as extract_features but takes a numpy array directly
+    instead of a file path. Used for real-time streaming.
+    """
+    if len(audio) < sr * 0.1:
+        audio = np.pad(audio, (0, int(sr * 0.1) - len(audio)))
+
+    features = []
+
+    mfcc        = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
+    delta_width = min(9, mfcc.shape[1] if mfcc.shape[1] % 2 != 0 else mfcc.shape[1] - 1)
+    delta_width = max(3, delta_width)
+    mfcc_delta  = librosa.feature.delta(mfcc, width=delta_width)
+    mfcc_delta2 = librosa.feature.delta(mfcc, order=2, width=delta_width)
+
+    for coef in [mfcc, mfcc_delta, mfcc_delta2]:
+        features.extend([
+            np.mean(coef, axis=1),
+            np.std(coef, axis=1),
+        ])
+
+    zcr = librosa.feature.zero_crossing_rate(audio)[0]
+    features.append([np.mean(zcr), np.std(zcr), np.max(zcr), np.min(zcr)])
+
+    rms = librosa.feature.rms(y=audio)[0]
+    features.append([
+        np.mean(rms), np.std(rms),
+        np.max(rms),  np.min(rms),
+        np.mean(np.diff(rms))
+    ])
+
+    centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)[0]
+    features.append([np.mean(centroid), np.std(centroid)])
+
+    rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)[0]
+    features.append([np.mean(rolloff), np.std(rolloff)])
+
+    stft = np.abs(librosa.stft(audio))
+    flux = np.sqrt(np.sum(np.diff(stft, axis=1) ** 2, axis=0))
+    features.append([np.mean(flux), np.std(flux)])
+
+    bandwidth = librosa.feature.spectral_bandwidth(y=audio, sr=sr)[0]
+    features.append([np.mean(bandwidth), np.std(bandwidth)])
+
+    chroma = librosa.feature.chroma_stft(y=audio, sr=sr)
+    features.append([np.mean(chroma), np.std(chroma)])
+
+    mel    = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=40)
+    mel_db = librosa.power_to_db(mel, ref=np.max)
+    features.append([
+        np.mean(mel_db), np.std(mel_db),
+        np.max(mel_db),  np.min(mel_db)
+    ])
+
+    tempo, _ = librosa.beat.beat_track(y=audio, sr=sr)
+    tempo_val = float(np.atleast_1d(tempo)[0])
+    features.append([tempo_val])
+
+    harmonic, percussive = librosa.effects.hpss(audio)
+    h_energy = np.mean(harmonic ** 2)
+    p_energy = np.mean(percussive ** 2)
+    ratio    = h_energy / (p_energy + 1e-10)
+    features.append([h_energy, p_energy, ratio])
+
+    threshold     = 0.01 * np.max(np.abs(audio))
+    silence_ratio = np.mean(np.abs(audio) < threshold)
+    features.append([silence_ratio])
+
+    flat = []
+    for f in features:
+        if isinstance(f, np.ndarray):
+            flat.extend(f.flatten().tolist())
+        else:
+            flat.extend(f)
+
+    return np.array(flat)
+

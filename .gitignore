@@ -13,3 +13,5 @@ models/*.pt
 dist/
 build/
 .env
+data/mic_speech/
+data/mic_noise/

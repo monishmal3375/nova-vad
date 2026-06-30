@@ -2,15 +2,26 @@
 
 > **Noise-robust, Optimized, eXplainable Voice Activity Detector**
 
-NOVA-VAD is a lightweight, explainable Voice Activity Detector that outperforms every major open-source alternative on real-world noisy audio — without requiring a GPU or PyTorch.
+NOVA-VAD is a lightweight, explainable Voice Activity Detector for noisy real-world audio.
 
-Built as an open-source contribution to solving a problem that has existed in speech processing for 15+ years: existing VADs are either accurate OR lightweight OR explainable. Never all three.
+It is built for people working on ASR, diarization, call transcription, edge audio, robotics, and realtime voice agents who need to decide when speech is actually present before sending audio downstream.
+
+On the current held-out noisy-audio benchmark, NOVA-VAD reports **93.0% accuracy / 92.63 F1** while staying lightweight and explainable.
+
+**Links**
+
+- Hugging Face: https://huggingface.co/monishmal0204/nova-vad
+- X: https://x.com/Nova_vad
+- Roadmap: [ROADMAP.md](ROADMAP.md)
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
 ## 🏆 Benchmark Results
 
-Tested on 100 held-out files from UrbanSound8K (traffic, sirens, jackhammers, AC units, construction noise):
+Tested on 100 held-out files from UrbanSound8K noise categories including traffic, sirens, jackhammers, AC units, and construction noise.
+
+The benchmark is intentionally scoped: these numbers describe this repo's noisy-audio test setup, not a universal claim across every speech domain.
 
 | Model | Accuracy | Precision | Recall | F1 | Lightweight | Explainable |
 |---|---|---|---|---|---|---|
@@ -19,6 +30,8 @@ Tested on 100 held-out files from UrbanSound8K (traffic, sirens, jackhammers, AC
 | Silero VAD | 87.0% | 86.27% | 88.0% | 87.13% | ❌ | ❌ |
 | **NOVA-VAD** | **93.0%** | **97.78%** | **88.0%** | **92.63%** | **✅** | **✅** |
 
+Note: the full benchmark environment installs heavier baseline libraries so the repo can compare against them. The NOVA-VAD classifier itself is a feature-based scikit-learn ensemble.
+
 ---
 
 ## 🔑 What Makes NOVA-VAD Different
@@ -26,11 +39,22 @@ Tested on 100 held-out files from UrbanSound8K (traffic, sirens, jackhammers, AC
 | Feature | WebRTC | Silero | Pyannote | NOVA-VAD |
 |---|---|---|---|---|
 | Accurate on noisy audio | ❌ | Partial | Partial | ✅ |
-| Lightweight (no PyTorch) | ✅ | ❌ | ❌ | ✅ |
+| Lightweight core classifier | ✅ | ❌ | ❌ | ✅ |
 | Fully open source | ✅ | Partial | ✅ | ✅ |
 | Explains every decision | ❌ | ❌ | ❌ | ✅ |
 | Retrainable on custom data | ❌ | ❌ | ❌ | ✅ |
 | Confidence scores | ❌ | ❌ | ❌ | ✅ |
+
+---
+
+## Who This Is For
+
+- Voice-agent builders who need cleaner speech boundaries before ASR
+- Speech researchers testing VAD behavior in noisy environments
+- Edge/audio developers who want a lightweight baseline without a GPU
+- Open-source contributors interested in explainable audio ML
+
+If you try NOVA-VAD on your own noisy dataset, please open an issue with the result. Hard failure cases are especially useful.
 
 ---
 
@@ -66,14 +90,36 @@ python3 download_data.py
 python3 -m src.pipeline
 ```
 
+The first full run downloads data, denoises audio, trains the ensemble, and saves local model files into `models/`.
+
 ### Explain a Prediction
 ```bash
 python3 -m src.explainer data/clean_speech/speech_001.wav
 ```
 
+### Try Your Own Audio
+After running the pipeline once so local models are saved:
+
+```bash
+python3 -m src.explainer path/to/your_audio.wav
+```
+
+If NOVA-VAD gets your clip wrong, open a noisy-audio issue with the expected label, prediction, confidence, and a short description of the noise.
+
 ### Run Full Benchmark
 ```bash
 python3 -m src.benchmark
+```
+
+### Realtime Streaming
+```bash
+python3 -m src.stream
+```
+
+For better streaming behavior, first run:
+
+```bash
+python3 retrain_streaming.py
 ```
 
 ---
@@ -140,7 +186,7 @@ nova-vad/
 2. They are black boxes — no explanation of why a decision was made
 3. They are too heavy for edge devices — Silero needs PyTorch (200MB+)
 
-NOVA-VAD solves all three simultaneously. No existing open-source tool does this.
+NOVA-VAD is designed to push on all three at once: noisy-audio performance, lightweight inference, and explainable decisions.
 
 ---
 
@@ -152,9 +198,27 @@ NOVA-VAD solves all three simultaneously. No existing open-source tool does this
 - [x] Ensemble model (RF + GBT)
 - [x] Explainability layer
 - [x] Benchmark vs Silero, Pyannote, WebRTC
-- [ ] Real-time streaming audio support
+- [ ] Harden real-time streaming audio support
 - [ ] pip install nova-vad packaging
 - [ ] Research paper
+
+See [ROADMAP.md](ROADMAP.md) for contributor-friendly tasks.
+
+---
+
+## 🤝 Contributing
+
+NOVA-VAD is early and useful test coverage matters more than polished hype.
+
+Good ways to help:
+
+- Try it on noisy speech from your own project
+- Open an issue with false positives or false negatives
+- Add benchmark results against another VAD
+- Improve packaging so users can `pip install nova-vad`
+- Help harden realtime streaming support
+
+Start with [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ---
 

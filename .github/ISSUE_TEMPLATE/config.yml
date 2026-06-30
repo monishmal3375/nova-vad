@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: NOVA-VAD on X
+    url: https://x.com/Nova_vad
+    about: Follow project updates and share quick questions.
+  - name: NOVA-VAD on Hugging Face
+    url: https://huggingface.co/monishmal0204/nova-vad
+    about: View the model card and project page.

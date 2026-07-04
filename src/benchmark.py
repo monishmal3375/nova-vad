@@ -718,8 +718,37 @@ def save_artifacts(results: list, n_test: int, category_breakdowns: dict = None)
 
 # ── Main ───────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    CLEAN_SPEECH = "data/clean_speech"
-    CLEAN_NOISE  = "data/clean_noise"
+    # NOTE: the benchmark deliberately evaluates every model (including
+    # NOVA-VAD) on RAW, undenoised audio (data/speech, data/noise) rather
+    # than the noisereduce-cleaned data/clean_speech, data/clean_noise
+    # directories that src/pipeline.py produces.
+    #
+    # Root cause of a prior bug this fixes: denoiser.py builds each clip's
+    # noise profile from *that same clip's* first 0.5s
+    # (noise_sample = audio[:sr*0.5]) and runs noisereduce against it. For a
+    # roughly-stationary UrbanSound8K noise clip (drilling, siren, AC hum,
+    # engine idling, ...) the first 0.5s is representative of the whole
+    # clip, so this profile ends up subtracting out most of the clip's own
+    # energy — RMS drops ~67% on average across the noise set. For speech
+    # clips the first 0.5s is often a quiet lead-in, not representative of
+    # the louder voiced segments, so speech RMS only drops ~18% on average.
+    # That asymmetry manufactures an artificial energy gap between the
+    # classes that does not exist in the raw source audio (raw noise is
+    # actually louder than raw speech on average in this dataset — 8.85%
+    # mean RMS vs 6.91%). It's what let the naive Energy-Threshold baseline
+    # hit 74% accuracy: measured on data/speech vs data/noise directly
+    # (same 80/20 split), the same fixed 0.02 RMS threshold gets 52% — a
+    # coin flip, as expected for a single-number heuristic on real-world
+    # noise recordings.
+    #
+    # It's also the more honest choice architecturally: src/explainer.py and
+    # src/stream.py — the actual inference entry points a user or
+    # downstream integration calls — never run the denoiser. It only ever
+    # ran as an offline data-prep step before training/eval. Benchmarking
+    # against clean_speech/clean_noise was measuring performance on audio
+    # nothing in real deployment ever sees.
+    SPEECH_DIR = "data/speech"
+    NOISE_DIR  = "data/noise"
 
     print("=" * 65)
     print("  NOVA-VAD BENCHMARK")
@@ -728,13 +757,13 @@ if __name__ == "__main__":
     # split dataset
     print("\n[ STEP 1 ] Splitting dataset 80/20...")
     train_speech, train_noise, test_speech, test_noise = split_dataset(
-        CLEAN_SPEECH, CLEAN_NOISE
+        SPEECH_DIR, NOISE_DIR
     )
 
     # train NOVA-VAD on training set only
     print("\n[ STEP 2 ] Training NOVA-VAD on training set...")
     rf, gbt, scaler = train_nova_vad(
-        train_speech, train_noise, CLEAN_SPEECH, CLEAN_NOISE
+        train_speech, train_noise, SPEECH_DIR, NOISE_DIR
     )
     print("  Training complete.")
 
@@ -743,35 +772,35 @@ if __name__ == "__main__":
     print("\n[ STEP 3 ] Testing all models on held-out test set...")
 
     print("\n  Running WebRTC VAD...")
-    webrtc_r = run_webrtc(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    webrtc_r = run_webrtc(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {webrtc_r['accuracy']}%")
 
     print("\n  Running Energy Threshold (naive baseline)...")
-    energy_r = run_energy_threshold(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    energy_r = run_energy_threshold(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {energy_r['accuracy']}%")
 
     print("\n  Running NOVA-VAD...")
-    nova_r = run_nova_vad(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE, rf, gbt, scaler)
+    nova_r = run_nova_vad(test_speech, test_noise, SPEECH_DIR, NOISE_DIR, rf, gbt, scaler)
     print(f"  Done — {nova_r['accuracy']}%")
 
     print("\n  Running Silero VAD...")
-    silero_r = run_silero(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    silero_r = run_silero(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {silero_r['accuracy']}%")
 
     print("\n  Running Pyannote VAD...")
-    pyannote_r = run_pyannote(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    pyannote_r = run_pyannote(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {pyannote_r['accuracy']}%")
 
     print("\n  Running SpeechBrain VAD...")
-    speechbrain_r = run_speechbrain(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    speechbrain_r = run_speechbrain(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {speechbrain_r['accuracy']}%")
 
     print("\n  Running TEN-VAD...")
-    ten_vad_r = run_ten_vad(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    ten_vad_r = run_ten_vad(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {ten_vad_r['accuracy']}%")
 
     print("\n  Running Picovoice Cobra (skipped unless PICOVOICE_ACCESS_KEY is set)...")
-    cobra_r = run_picovoice_cobra(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    cobra_r = run_picovoice_cobra(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     if cobra_r:
         print(f"  Done — {cobra_r['accuracy']}%")
 

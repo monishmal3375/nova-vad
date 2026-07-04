@@ -42,6 +42,18 @@ NOVA-VAD is focused on becoming a practical, lightweight, explainable VAD for no
 - [x] Track latency and model size alongside accuracy/F1 — every benchmark run
   reports mean/p95 per-file latency and on-disk model size per model in the same
   table and in `results/benchmark_latest.json`.
+- [x] Fix a benchmark methodology bug where the naive Energy-Threshold baseline
+  (74.0%) beat WebRTC, TEN-VAD, and SpeechBrain — root cause was that every model
+  was evaluated on `data/clean_speech`/`data/clean_noise`, output of
+  `src/denoiser.py`'s `noisereduce` step, which builds each clip's noise profile
+  from that same clip's own first 0.5s. That erased ~67% of noise-clip RMS energy
+  on average but only ~18% of speech-clip RMS energy, manufacturing an artificial
+  energy gap between classes that doesn't exist in the raw audio (and doesn't match
+  how `src/explainer.py`/`src/stream.py` run inference — neither denoises).
+  `src/benchmark.py` now trains and evaluates every model on raw `data/speech`/
+  `data/noise`. Energy Threshold now correctly scores 52.0% (coin-flip, as expected
+  for a volume-only heuristic on real-world noise) and every real VAD system beats
+  it. See the README's "Benchmark methodology fix" note for full numbers.
 
 ## Explainability
 

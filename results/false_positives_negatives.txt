@@ -1,15 +1,15 @@
 NOVA-VAD false positive / false negative report
-Generated: 20260703_191332
+Generated: 20260703_200059
 Test set size: 100
 
 FALSE POSITIVES (3) — noise misclassified as SPEECH
 ------------------------------------------------------------
-  noise_060.wav                  predicted=SPEECH actual=NO SPEECH confidence=57.02
-  noise_154.wav                  predicted=SPEECH actual=NO SPEECH confidence=73.19
-  noise_089.wav                  predicted=SPEECH actual=NO SPEECH confidence=77.8
+  noise_154.wav                  predicted=SPEECH actual=NO SPEECH confidence=89.2
+  noise_095.wav                  predicted=SPEECH actual=NO SPEECH confidence=87.92
+  noise_089.wav                  predicted=SPEECH actual=NO SPEECH confidence=98.16
 
 FALSE NEGATIVES (3) — speech misclassified as NO SPEECH
 ------------------------------------------------------------
-  speech_099.wav                 predicted=NO SPEECH actual=SPEECH confidence=63.33
-  speech_122.wav                 predicted=NO SPEECH actual=SPEECH confidence=81.89
-  speech_100.wav                 predicted=NO SPEECH actual=SPEECH confidence=89.69
+  speech_067.wav                 predicted=NO SPEECH actual=SPEECH confidence=68.85
+  speech_197.wav                 predicted=NO SPEECH actual=SPEECH confidence=52.92
+  speech_100.wav                 predicted=NO SPEECH actual=SPEECH confidence=95.46

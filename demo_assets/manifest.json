@@ -1,0 +1,42 @@
+[
+  {
+    "clip": "speech_demo_1.wav",
+    "source": "Google Speech Commands v0.02",
+    "license": "CC BY 4.0",
+    "true_label": "SPEECH",
+    "category": "clean_speech",
+    "original_filename": "speech_083.wav"
+  },
+  {
+    "clip": "speech_demo_2.wav",
+    "source": "Google Speech Commands v0.02",
+    "license": "CC BY 4.0",
+    "true_label": "SPEECH",
+    "category": "clean_speech",
+    "original_filename": "speech_243.wav"
+  },
+  {
+    "clip": "noise_demo_1.wav",
+    "source": "Google Speech Commands v0.02 (_background_noise_)",
+    "license": "CC BY 4.0",
+    "true_label": "NO SPEECH",
+    "category": "white_noise",
+    "original_filename": "white_noise.wav"
+  },
+  {
+    "clip": "noise_demo_2.wav",
+    "source": "Google Speech Commands v0.02 (_background_noise_)",
+    "license": "CC BY 4.0",
+    "true_label": "NO SPEECH",
+    "category": "pink_noise",
+    "original_filename": "pink_noise.wav"
+  },
+  {
+    "clip": "noise_demo_3.wav",
+    "source": "Google Speech Commands v0.02 (_background_noise_)",
+    "license": "CC BY 4.0",
+    "true_label": "NO SPEECH",
+    "category": "doing_the_dishes",
+    "original_filename": "doing_the_dishes.wav"
+  }
+]

@@ -262,16 +262,25 @@ def print_explanation(result: dict):
 # ── CLI Usage ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import sys
+    import json
 
-    if len(sys.argv) < 2:
-        print("Usage: python3 -m src.explainer <audio_file.wav>")
+    args = [a for a in sys.argv[1:] if a != "--json"]
+    as_json = "--json" in sys.argv[1:]
+
+    if len(args) < 1:
+        print("Usage: python3 -m src.explainer <audio_file.wav> [--json]")
         print("Example: python3 -m src.explainer data/speech/speech_001.wav")
+        print("         python3 -m src.explainer data/speech/speech_001.wav --json > explanation.json")
         sys.exit(1)
 
-    audio_path = sys.argv[1]
+    audio_path = args[0]
     if not os.path.exists(audio_path):
         print(f"Error: File not found: {audio_path}")
         sys.exit(1)
 
     result = explain(audio_path)
-    print_explanation(result)
+
+    if as_json:
+        print(json.dumps(result, indent=2))
+    else:
+        print_explanation(result)

@@ -6,7 +6,7 @@ NOVA-VAD is a lightweight, explainable Voice Activity Detector for noisy real-wo
 
 It is built for people working on ASR, diarization, call transcription, edge audio, robotics, and realtime voice agents who need to decide when speech is actually present before sending audio downstream.
 
-On the current held-out noisy-audio benchmark, NOVA-VAD reports **93.0% accuracy / 92.63 F1** while staying lightweight and explainable.
+On the current held-out noisy-audio benchmark, NOVA-VAD reports **94.0% accuracy / 94.0 F1** while staying lightweight and explainable.
 
 **Links**
 
@@ -19,18 +19,32 @@ On the current held-out noisy-audio benchmark, NOVA-VAD reports **93.0% accuracy
 
 ## 🏆 Benchmark Results
 
-Tested on 100 held-out files from UrbanSound8K noise categories including traffic, sirens, jackhammers, AC units, and construction noise.
+Tested on 100 held-out files sampled from all 10 UrbanSound8K noise categories — air
+conditioner, car horn, children playing, dog bark, drilling, engine idling, gun shot,
+jackhammer, siren, and street music — stratified so no single category dominates the
+test set (previously this benchmark only covered 5 categories: traffic, sirens,
+jackhammers, AC units, and construction noise).
 
 The benchmark is intentionally scoped: these numbers describe this repo's noisy-audio test setup, not a universal claim across every speech domain.
 
-| Model | Accuracy | Precision | Recall | F1 | Lightweight | Explainable |
-|---|---|---|---|---|---|---|
-| WebRTC VAD | 58.0% | 57.69% | 60.0% | 58.82% | ✅ | ❌ |
-| Pyannote VAD | 62.0% | 57.32% | 94.0% | 71.21% | ❌ | ❌ |
-| Silero VAD | 87.0% | 86.27% | 88.0% | 87.13% | ❌ | ❌ |
-| **NOVA-VAD** | **93.0%** | **97.78%** | **88.0%** | **92.63%** | **✅** | **✅** |
+| Model | Accuracy | Precision | Recall | F1 | Mean Latency | Model Size | Lightweight | Explainable |
+|---|---|---|---|---|---|---|---|---|
+| WebRTC VAD | 52.0% | 51.67% | 62.0% | 56.36% | 0.85ms | N/A | ✅ | ❌ |
+| Energy Threshold (naive) | 74.0% | 70.69% | 82.0% | 75.93% | 0.29ms | 0B | ✅ | ⚠️ trivial |
+| TEN-VAD | 56.0% | 54.84% | 68.0% | 60.71% | 22.94ms | N/A | ✅ | ❌ |
+| SpeechBrain VAD | 58.0% | 55.26% | 84.0% | 66.67% | 60.41ms | N/A | ❌ | ❌ |
+| Pyannote VAD | 67.0% | 60.76% | 96.0% | 74.42% | 58.87ms | N/A | ❌ | ❌ |
+| Silero VAD | 91.0% | 88.68% | 94.0% | 91.26% | 8.52ms | N/A | ❌ | ❌ |
+| **NOVA-VAD** | **94.0%** | **94.0%** | **94.0%** | **94.0%** | **62.82ms** | **1.1MB** | **✅** | **✅** |
 
-Note: the full benchmark environment installs heavier baseline libraries so the repo can compare against them. The NOVA-VAD classifier itself is a feature-based scikit-learn ensemble.
+Picovoice Cobra is wired into the benchmark script but skipped by default — it requires a
+commercial AccessKey. Set `PICOVOICE_ACCESS_KEY` (and `pip install pvcobra`) to include it.
+
+Note: the full benchmark environment installs heavier baseline libraries so the repo can
+compare against them. The NOVA-VAD classifier itself is a feature-based scikit-learn
+ensemble. Every run of `python3 -m src.benchmark` saves this full table, per-category
+accuracy, and false positive/negative file lists to `results/` — see
+[Run Full Benchmark](#run-full-benchmark) below.
 
 ---
 
@@ -111,6 +125,11 @@ If NOVA-VAD gets your clip wrong, open a noisy-audio issue with the expected lab
 python3 -m src.benchmark
 ```
 
+Each run saves reproducible artifacts to `results/`:
+- `results/benchmark_latest.json` — full metrics (accuracy/precision/recall/F1, mean + p95 latency, model size on disk) for every model compared, plus false positive/negative filenames
+- `results/benchmark_<timestamp>.json` — timestamped copy of the same
+- `results/false_positives_negatives.txt` — plain-text list of which NOVA-VAD predictions were wrong and what the model predicted vs. the true label
+
 ### Realtime Streaming
 ```bash
 python3 -m src.stream
@@ -121,6 +140,20 @@ For better streaming behavior, first run:
 ```bash
 python3 retrain_streaming.py
 ```
+
+Streaming picks up a few flags:
+
+```bash
+python3 -m src.stream --list-devices     # list available input devices and exit
+python3 -m src.stream --device 2         # use a specific input device by index
+```
+
+If no `--device` is given and the session is interactive, you'll be prompted to pick a
+microphone from the list (press Enter to use the system default).
+
+The displayed SPEECH / NO SPEECH state uses chunk-level hysteresis: a state flip only
+takes effect once the new label has majority support over the last few 1s chunks, so
+single borderline frames don't cause visible flicker.
 
 ---
 
@@ -197,8 +230,9 @@ NOVA-VAD is designed to push on all three at once: noisy-audio performance, ligh
 - [x] 150+ feature MFCC classifier
 - [x] Ensemble model (RF + GBT)
 - [x] Explainability layer
-- [x] Benchmark vs Silero, Pyannote, WebRTC
-- [ ] Harden real-time streaming audio support
+- [x] Benchmark vs Silero, Pyannote, WebRTC, SpeechBrain, TEN-VAD
+- [x] Harden real-time streaming audio support (chunk-level hysteresis + mic device selection)
+- [x] Expand noisy-audio benchmark to all 10 UrbanSound8K categories + latency/model-size tracking + FP/FN artifacts
 - [ ] pip install nova-vad packaging
 - [ ] Research paper
 

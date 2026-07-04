@@ -1,0 +1,67 @@
+{
+  "file": "noise_demo_4.wav",
+  "label": "NO SPEECH",
+  "confidence": 100.0,
+  "top_features": [
+    {
+      "feature": "MFCC Delta 1 std",
+      "importance": 10.06,
+      "value": 1.4123,
+      "meaning": "LOW spectral change rate \u2014 static or repetitive noise"
+    },
+    {
+      "feature": "MFCC Delta 2 std",
+      "importance": 9.31,
+      "value": 1.0304,
+      "meaning": "LOW acceleration \u2014 slowly changing or static audio"
+    },
+    {
+      "feature": "MFCC 2 std",
+      "importance": 5.06,
+      "value": 6.895,
+      "meaning": "LOW variability \u2014 stable spectral content"
+    },
+    {
+      "feature": "MFCC Delta2 2 std",
+      "importance": 4.78,
+      "value": 0.5166,
+      "meaning": "LOW variability \u2014 stable spectral content"
+    },
+    {
+      "feature": "Spectral bandwidth std",
+      "importance": 4.37,
+      "value": 54.3079,
+      "meaning": "value: 54.3079"
+    },
+    {
+      "feature": "Spectral rolloff std",
+      "importance": 4.26,
+      "value": 141.1564,
+      "meaning": "LOW variation \u2014 stable high-frequency cutoff, speech-like"
+    },
+    {
+      "feature": "MFCC Delta 4 std",
+      "importance": 3.59,
+      "value": 0.8323,
+      "meaning": "LOW variability \u2014 stable spectral content"
+    },
+    {
+      "feature": "Silence ratio",
+      "importance": 3.5,
+      "value": 0.0373,
+      "meaning": "4% silence \u2014 highly active audio"
+    },
+    {
+      "feature": "MFCC Delta 5 std",
+      "importance": 3.49,
+      "value": 0.9148,
+      "meaning": "LOW variability \u2014 stable spectral content"
+    },
+    {
+      "feature": "MFCC 1 std",
+      "importance": 3.46,
+      "value": 10.6923,
+      "meaning": "LOW variability \u2014 stable spectral content"
+    }
+  ]
+}

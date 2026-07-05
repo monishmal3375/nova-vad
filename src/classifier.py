@@ -2,11 +2,77 @@ import os
 from pyexpat import features
 import numpy as np
 import librosa
+from scipy.signal import find_peaks
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import LeaveOneOut, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
 import joblib
+
+
+def _spectral_entropy_stats(power_spec: np.ndarray) -> tuple:
+    """
+    Per-frame spectral entropy (Shannon entropy of the normalized power
+    spectrum). Voiced speech concentrates energy in a few formant/harmonic
+    bins (low entropy); most environmental noise spreads energy more
+    uniformly across the spectrum (high entropy). Cheap (no filterbank/
+    fitting), and reported in the noise-robust-VAD literature as holding up
+    better than raw energy features at low SNR.
+    """
+    norm = power_spec / (np.sum(power_spec, axis=0, keepdims=True) + 1e-12)
+    entropy = -np.sum(norm * np.log2(norm + 1e-12), axis=0)
+    return float(np.mean(entropy)), float(np.std(entropy))
+
+
+def _harmonic_peak_prominence_stats(power_spec: np.ndarray) -> tuple:
+    """
+    Per-frame mean peak prominence in the dB spectrum — how far harmonic
+    peaks stand above their local surrounding floor. Distinct from the
+    existing time-domain harmonic/percussive (HPSS) ratio: this measures
+    peak-vs-local-noise-floor energy gap directly in the spectrum, which
+    tends to survive additive background noise better than a global
+    harmonic/percussive energy split.
+    """
+    prominences = []
+    for frame in power_spec.T:
+        frame_db = librosa.power_to_db(frame + 1e-12)
+        peaks, props = find_peaks(frame_db, prominence=1.0)
+        prominences.append(float(np.mean(props["prominences"])) if len(peaks) else 0.0)
+    prominences = np.array(prominences)
+    return float(np.mean(prominences)), float(np.std(prominences))
+
+
+def _voiced_fraction(audio: np.ndarray, sr: int, fmin: float = 65, fmax: float = 400,
+                      frame_length: int = 1024, hop_length: int = 256,
+                      strength_threshold: float = 0.35) -> float:
+    """
+    Fraction of frames with strong periodicity in the human pitch range, via
+    normalized autocorrelation peak strength per frame (NOT librosa.yin's
+    raw F0 estimate — yin always returns *some* frequency even for pure
+    noise, so a naive "is yin's output in range" check is always true and
+    carries no signal). This is a cheap, real voiced/unvoiced proxy: high
+    autocorrelation at a plausible pitch-period lag means the frame is
+    periodic (voiced speech); low means it's aperiodic (most noise).
+    """
+    if len(audio) < frame_length:
+        return 0.0
+    frames = librosa.util.frame(audio, frame_length=frame_length, hop_length=hop_length)
+    lag_min = max(1, int(sr / fmax))
+    lag_max = min(frame_length - 1, int(sr / fmin))
+    if lag_max <= lag_min:
+        return 0.0
+
+    voiced_count = 0
+    for i in range(frames.shape[1]):
+        frame = frames[:, i] - np.mean(frames[:, i])
+        energy = np.dot(frame, frame)
+        if energy < 1e-9:
+            continue
+        ac = np.correlate(frame, frame, mode="full")[frame_length - 1:]
+        ac_norm = ac / (ac[0] + 1e-12)
+        if np.max(ac_norm[lag_min:lag_max]) > strength_threshold:
+            voiced_count += 1
+    return float(voiced_count) / frames.shape[1]
 
 def extract_features(file_path: str) -> np.ndarray:
     """
@@ -78,9 +144,13 @@ def extract_features(file_path: str) -> np.ndarray:
     # ── 9. Mel Spectrogram Stats ──────────────────────────────────────────
     mel = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=40)
     mel_db = librosa.power_to_db(mel, ref=np.max)
+    # NOTE: mel_db's max is always exactly 0dB by construction (ref=np.max
+    # normalizes relative to the clip's own peak) — it carries zero signal
+    # and was previously a constant, dead feature. log1p(linear power max)
+    # instead captures real absolute-energy-level information.
     features.append([
         np.mean(mel_db), np.std(mel_db),
-        np.max(mel_db),  np.min(mel_db)
+        float(np.log1p(np.max(mel))), np.min(mel_db)
     ])
 
     # ── 10. Tempo and Rhythm ──────────────────────────────────────────────
@@ -101,6 +171,52 @@ def extract_features(file_path: str) -> np.ndarray:
     threshold  = 0.01 * np.max(np.abs(audio))
     silence_ratio = np.mean(np.abs(audio) < threshold)
     features.append([silence_ratio])
+
+    # ── 13. Pitch / voicing (F0 via YIN + autocorrelation voicing) ─────────
+    # Human speech has a fundamental frequency in a fairly narrow band
+    # (~70-400Hz) and long voiced runs; most environmental noise (engines,
+    # drilling, traffic, wind) either has no clear periodicity or sits
+    # outside that band. YIN (not the much slower probabilistic pYIN) keeps
+    # F0 estimation a ~15-20ms operation so it doesn't blow up inference
+    # latency. Note: yin always returns *some* frequency estimate even for
+    # pure noise (unlike pyin, it has no built-in "unvoiced" output), so
+    # voiced fraction is computed separately below via autocorrelation
+    # periodicity strength rather than trusting yin's raw output range.
+    f0 = librosa.yin(audio, fmin=65, fmax=400, sr=sr, frame_length=1024)
+    f0_mean  = float(np.mean(f0))
+    f0_std   = float(np.std(f0))
+    f0_range = float(np.max(f0) - np.min(f0))
+    voiced_frac = _voiced_fraction(audio, sr)
+    features.append([f0_mean, f0_std, f0_range, voiced_frac])
+
+    # ── 14. Spectral Contrast ──────────────────────────────────────────────
+    # difference between peaks and valleys across sub-bands — voiced speech
+    # (harmonics standing out of the noise floor) tends to show higher
+    # contrast than diffuse environmental noise.
+    contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
+    features.append([np.mean(contrast), np.std(contrast)])
+
+    # ── 15. Spectral Flatness ──────────────────────────────────────────────
+    # ~1.0 for noise-like/white-noise spectra, much lower for tonal/
+    # harmonic signals like voiced speech. Cheap and complementary to
+    # harmonic/percussive ratio.
+    flatness = librosa.feature.spectral_flatness(y=audio)[0]
+    features.append([np.mean(flatness), np.std(flatness)])
+
+    # ── 16. Spectral Entropy ────────────────────────────────────────────────
+    # low for voiced speech (energy concentrated in formants/harmonics),
+    # high for diffuse environmental noise. Reuses the STFT already
+    # computed above for spectral flux.
+    power_spec = stft ** 2
+    entropy_mean, entropy_std = _spectral_entropy_stats(power_spec)
+    features.append([entropy_mean, entropy_std])
+
+    # ── 17. Harmonic Peak Prominence ────────────────────────────────────────
+    # how far harmonic peaks stand above the local spectral floor —
+    # survives additive background noise better than a global harmonic/
+    # percussive energy split (feature #11 above).
+    peak_prom_mean, peak_prom_std = _harmonic_peak_prominence_stats(power_spec)
+    features.append([peak_prom_mean, peak_prom_std])
 
     # flatten everything into one vector
     flat = []
@@ -306,6 +422,26 @@ def extract_features_from_array(audio: np.ndarray, sr: int) -> np.ndarray:
     threshold     = 0.01 * np.max(np.abs(audio))
     silence_ratio = np.mean(np.abs(audio) < threshold)
     features.append([silence_ratio])
+
+    f0 = librosa.yin(audio, fmin=65, fmax=400, sr=sr, frame_length=1024)
+    f0_mean  = float(np.mean(f0))
+    f0_std   = float(np.std(f0))
+    f0_range = float(np.max(f0) - np.min(f0))
+    voiced_frac = _voiced_fraction(audio, sr)
+    features.append([f0_mean, f0_std, f0_range, voiced_frac])
+
+    contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
+    features.append([np.mean(contrast), np.std(contrast)])
+
+    flatness = librosa.feature.spectral_flatness(y=audio)[0]
+    features.append([np.mean(flatness), np.std(flatness)])
+
+    power_spec = stft ** 2
+    entropy_mean, entropy_std = _spectral_entropy_stats(power_spec)
+    features.append([entropy_mean, entropy_std])
+
+    peak_prom_mean, peak_prom_std = _harmonic_peak_prominence_stats(power_spec)
+    features.append([peak_prom_mean, peak_prom_std])
 
     flat = []
     for f in features:

@@ -1,0 +1,17 @@
+{
+  "label": "baseline-hyperparams",
+  "n_splits": 5,
+  "acc_mean": 99.26,
+  "acc_std": 0.52,
+  "f1_mean": 99.26,
+  "f1_std": 0.53,
+  "precision_mean": 99.41,
+  "recall_mean": 99.11,
+  "fold_accuracies": [
+    99.63,
+    99.26,
+    100.0,
+    98.52,
+    98.88
+  ]
+}

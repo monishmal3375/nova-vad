@@ -1,0 +1,53 @@
+{
+  "average": {
+    "label": "average",
+    "n_splits": 5,
+    "acc_mean": 100.0,
+    "acc_std": 0.0,
+    "f1_mean": 100.0,
+    "f1_std": 0.0,
+    "precision_mean": 100.0,
+    "recall_mean": 100.0,
+    "fold_accuracies": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  "stacking": {
+    "label": "stacking",
+    "n_splits": 5,
+    "acc_mean": 100.0,
+    "acc_std": 0.0,
+    "f1_mean": 100.0,
+    "f1_std": 0.0,
+    "precision_mean": 100.0,
+    "recall_mean": 100.0,
+    "fold_accuracies": [
+      100.0,
+      100.0,
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  "threshold": {
+    "label": "threshold",
+    "n_splits": 5,
+    "acc_mean": 99.85,
+    "acc_std": 0.18,
+    "f1_mean": 99.85,
+    "f1_std": 0.18,
+    "precision_mean": 99.7,
+    "recall_mean": 100.0,
+    "fold_accuracies": [
+      100.0,
+      99.63,
+      100.0,
+      100.0,
+      99.63
+    ]
+  }
+}

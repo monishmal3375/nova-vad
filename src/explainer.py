@@ -42,7 +42,7 @@ def get_feature_names() -> list:
     names += ["Chroma mean", "Chroma std"]
 
     # Mel Spectrogram (4)
-    names += ["Mel mean", "Mel std", "Mel max", "Mel min"]
+    names += ["Mel mean", "Mel std", "Mel peak energy (log)", "Mel min"]
 
     # Tempo (1)
     names += ["Tempo"]
@@ -53,6 +53,21 @@ def get_feature_names() -> list:
     # Silence ratio (1)
     names += ["Silence ratio"]
 
+    # Pitch / voicing via YIN (4)
+    names += ["F0 mean", "F0 std", "F0 range", "Voiced fraction"]
+
+    # Spectral Contrast (2)
+    names += ["Spectral contrast mean", "Spectral contrast std"]
+
+    # Spectral Flatness (2)
+    names += ["Spectral flatness mean", "Spectral flatness std"]
+
+    # Spectral Entropy (2)
+    names += ["Spectral entropy mean", "Spectral entropy std"]
+
+    # Harmonic Peak Prominence (2)
+    names += ["Harmonic peak prominence mean", "Harmonic peak prominence std"]
+
     return names
 
 
@@ -61,7 +76,84 @@ def interpret_feature(name: str, value: float, importance: float) -> str:
     """
     Converts a feature name and value into a human readable explanation.
     """
-    if "Harmonic ratio" in name:
+    if "Spectral entropy" in name and "std" in name:
+        if value > 1.0:
+            return "HIGH entropy variation — mixed tonal/noisy segments over time"
+        else:
+            return "LOW entropy variation — consistent spectral concentration"
+
+    elif "Spectral entropy" in name:
+        if value < 3.5:
+            return "LOW entropy — energy concentrated in formants/harmonics, speech-like"
+        elif value < 5.0:
+            return "MODERATE entropy — mixed tonal/diffuse spectrum"
+        else:
+            return "HIGH entropy — energy spread across spectrum, noise-like"
+
+    elif "Harmonic peak prominence" in name and "std" in name:
+        if value > 3:
+            return "HIGH variation in peak clarity over time — dynamic, speech-like"
+        else:
+            return "LOW variation — consistently clear or consistently flat spectrum"
+
+    elif "Harmonic peak prominence" in name:
+        if value > 8:
+            return "HIGH prominence — clear harmonic peaks above noise floor, speech-like"
+        else:
+            return "LOW prominence — no clear peaks standing out, noise-like"
+
+    elif "Voiced fraction" in name:
+        pct = value * 100
+        if pct > 40:
+            return f"{pct:.0f}% voiced frames — clear pitch track, strongly speech-like"
+        elif pct > 10:
+            return f"{pct:.0f}% voiced frames — some pitched content present"
+        else:
+            return f"{pct:.0f}% voiced frames — little to no pitch, noise-like"
+
+    elif "F0 mean" in name:
+        if value == 0:
+            return "No reliable pitch detected — noise-like"
+        elif 80 <= value <= 300:
+            return f"{value:.0f}Hz — within typical human speech pitch range"
+        else:
+            return f"{value:.0f}Hz — outside typical speech pitch range"
+
+    elif "F0 std" in name or "F0 range" in name:
+        if value == 0:
+            return "No pitch variation — no voiced content detected"
+        elif value < 40:
+            return "LOW pitch variation — steady voiced tone, speech-like"
+        else:
+            return "HIGH pitch variation — sweeping/unstable pitch"
+
+    elif "Spectral contrast" in name and "std" in name:
+        if value > 5:
+            return "HIGH variation in peak/valley contrast — dynamic, speech-like"
+        else:
+            return "LOW variation — flat spectral contrast over time"
+
+    elif "Spectral contrast" in name:
+        if value > 20:
+            return "HIGH contrast — clear harmonic peaks over noise floor, speech-like"
+        else:
+            return "LOW contrast — diffuse spectrum, noise-like"
+
+    elif "Spectral flatness" in name and "std" in name:
+        if value > 0.05:
+            return "HIGH variation in tonality over time — mixed content"
+        else:
+            return "LOW variation — consistently tonal or consistently noisy"
+
+    elif "Spectral flatness" in name:
+        if value < 0.1:
+            return "LOW flatness — tonal/harmonic spectrum, speech-like"
+        elif value < 0.3:
+            return "MODERATE flatness — mixed tonal/noisy content"
+        else:
+            return "HIGH flatness — noise-like, closer to white noise"
+
+    elif "Harmonic ratio" in name:
         if value > 2.0:
             return "VERY HIGH — strong tonal content, consistent with speech"
         elif value > 1.0:
@@ -159,6 +251,14 @@ def interpret_feature(name: str, value: float, importance: float) -> str:
             return "MODERATE energy — normal speech level"
         else:
             return "HIGH energy — loud or close-range audio"
+
+    elif "Mel peak energy" in name:
+        if value < 2:
+            return "LOW peak energy — quiet clip overall"
+        elif value < 5:
+            return "MODERATE peak energy — typical speech loudness"
+        else:
+            return "HIGH peak energy — loud clip overall"
 
     elif "MFCC" in name and "std" in name:
         if value > 100:

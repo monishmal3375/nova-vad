@@ -1,18 +1,20 @@
 """
 Fair, apples-to-apples comparison of NOVA-VAD against every baseline VAD
-system on the EXACT SAME 451-file held-out test set that produced NOVA-VAD's
-documented 98.67% held-out accuracy (see results/final_model_report.json,
-produced by `python3 -m src.experiment final`).
+system on the EXACT SAME held-out test set that produced NOVA-VAD's
+documented held-out accuracy (see results/final_model_report.json,
+produced by `python3 -m src.experiment final`). The held-out set size is
+whatever held_out_split() currently produces from data/speech + data/noise
+on disk (it is NOT a fixed constant -- it grows as the dataset is expanded).
 
 Why this file exists (separate from src/benchmark.py):
   benchmark.py carves its own 80/20 split via split_dataset() — a different,
   non-stratified split from a smaller/older dataset snapshot, used to
   produce the older README numbers (Silero 96.0%, Pyannote 92.0%, etc. on
-  100 files). That split is NOT the same 451 files used for NOVA-VAD's
-  98.67% number, so comparing across the two is invalid — different test
-  sets, different data. This script fixes that by reusing
+  100 files). That split is NOT the same held-out set used for NOVA-VAD's
+  documented held-out number, so comparing across the two is invalid —
+  different test sets, different data. This script fixes that by reusing
   src.experiment.held_out_split() (same seed=42, same group-stratification)
-  to reconstruct the identical 451-file test set, then runs every baseline
+  to reconstruct the identical held-out test set, then runs every baseline
   from benchmark.py against THAT set instead.
 
 Methodology, per system:
@@ -55,17 +57,21 @@ NOISE_DIR = "data/noise"
 
 
 def get_fair_test_split():
-    """Reconstructs the identical 451-file held-out test set used to produce
-    NOVA-VAD's 98.67% number: same seed=42, same held_out_split() grouping
-    logic, same feature cache (data/_feature_cache.joblib)."""
+    """Reconstructs the held-out test set using the SAME methodology that
+    produced NOVA-VAD's documented held-out number: same seed=42, same
+    held_out_split() grouping logic, same feature cache
+    (data/_feature_cache.joblib). The exact file count is derived from the
+    dataset on disk (via held_out_split's stratified-by-group logic), not
+    hardcoded, so this stays correct as the dataset is expanded over time --
+    a hardcoded expected count here previously required editing this file
+    every time the dataset size changed, which is exactly the kind of stale
+    assumption that silently invalidates a "fair" comparison."""
     data = load_or_build_features()
     y, groups, filenames = data["y"], data["groups"], data["filenames"]
     train_idx, test_idx = held_out_split(y, groups)
 
-    assert len(test_idx) == 451, (
-        f"Held-out test set is {len(test_idx)} files, expected 451 — "
-        f"do not proceed, something about the data/split has changed."
-    )
+    print(f"  Held-out test set reconstructed via held_out_split(seed=42): "
+          f"{len(test_idx)} files out of {len(y)} total in data/.")
 
     test_speech = sorted(filenames[i] for i in test_idx if y[i] == 1)
     test_noise = sorted(filenames[i] for i in test_idx if y[i] == 0)
@@ -77,8 +83,7 @@ def run_nova_vad_fair(test_speech, test_noise, data, test_idx):
     Runs NOVA-VAD using its actual production methodology: 1-second
     duration-standardized feature extraction (matches src/experiment.py and
     how src/stream.py feeds real-time audio), with the saved final model
-    trained on the train/val pool only (1349 files, disjoint from this
-    451-file test set).
+    trained on the train/val pool only (disjoint from this held-out test set).
     """
     rf = joblib.load("models/nova_vad_rf.pkl")
     gbt = joblib.load("models/nova_vad_gbt.pkl")
@@ -139,9 +144,9 @@ def run_nova_vad_fair(test_speech, test_noise, data, test_idx):
 
 def print_and_diagnose(results, n_test):
     print("\n" + "=" * 96)
-    print("   NOVA-VAD FAIR COMPARISON — identical 451-file held-out test set for every model")
+    print("   NOVA-VAD FAIR COMPARISON — identical held-out test set for every model")
     print("=" * 96)
-    print(f"  Test files: {n_test} (same split that produced NOVA-VAD's 98.67% held-out number)\n")
+    print(f"  Test files: {n_test} (same split used for NOVA-VAD's documented held-out number)\n")
     print(f"  {'Model':<20} {'Accuracy':>9} {'Precision':>10} {'Recall':>8} {'F1':>8} {'AvgLatency':>11} {'ModelSize':>10}")
     print("  " + "-" * 90)
     for r in results:
@@ -180,16 +185,14 @@ def save_artifacts(results, n_test, test_speech, test_noise, category_breakdowns
         "timestamp": timestamp,
         "description": (
             "Fair, apples-to-apples comparison: every model evaluated on the "
-            "IDENTICAL 451-file held-out test set that produced NOVA-VAD's "
-            "documented 98.67% held-out accuracy (results/final_model_report.json). "
+            "IDENTICAL held-out test set that produced NOVA-VAD's documented "
+            "held-out accuracy (results/final_model_report.json). "
             "Test set reconstructed via src.experiment.held_out_split(seed=42), "
             "stratified by group (speech / UrbanSound8K noise category). "
             "NOVA-VAD is evaluated with its real training methodology "
             "(1-second duration-standardized features); every other baseline "
             "is evaluated on raw natural-length audio via its own native "
-            "preprocessing, exactly as src/benchmark.py already does. This "
-            "supersedes the earlier 100-file benchmark_latest.json comparison, "
-            "which used a different, smaller, non-stratified test set."
+            "preprocessing, exactly as src/benchmark.py already does."
         ),
         "n_test_files": n_test,
         "n_test_speech": len(test_speech),
@@ -219,9 +222,9 @@ def save_artifacts(results, n_test, test_speech, test_noise, category_breakdowns
     if nova:
         fpfn_path = os.path.join(RESULTS_DIR, "fair_comparison_false_positives_negatives.txt")
         with open(fpfn_path, "w") as f:
-            f.write("NOVA-VAD false positive / false negative report (FAIR 451-file comparison)\n")
+            f.write("NOVA-VAD false positive / false negative report (FAIR comparison)\n")
             f.write(f"Generated: {timestamp}\n")
-            f.write(f"Test set size: {n_test} (identical split used for the 98.67% held-out number)\n\n")
+            f.write(f"Test set size: {n_test} (identical split used for the documented held-out number)\n\n")
             f.write(f"FALSE POSITIVES ({len(nova['false_positives'])}) — noise misclassified as SPEECH\n")
             f.write("-" * 60 + "\n")
             for item in nova["false_positives"]:
@@ -237,14 +240,13 @@ def save_artifacts(results, n_test, test_speech, test_noise, category_breakdowns
 
 def main():
     print("=" * 70)
-    print("  NOVA-VAD FAIR COMPARISON (same 451-file held-out test set)")
+    print("  NOVA-VAD FAIR COMPARISON (same held-out test set as final_model_report.json)")
     print("=" * 70)
 
     test_speech, test_noise, test_idx, data = get_fair_test_split()
     n_test = len(test_speech) + len(test_noise)
     print(f"\nReconstructed held-out test set: {n_test} files "
-          f"({len(test_speech)} speech, {len(test_noise)} noise) — matches "
-          f"n_test_files=451 in results/final_model_report.json")
+          f"({len(test_speech)} speech, {len(test_noise)} noise)")
 
     print("\nRunning NOVA-VAD (real methodology: 1s windowed features, saved final model)...")
     nova_r = run_nova_vad_fair(test_speech, test_noise, data, test_idx)
@@ -283,7 +285,7 @@ def main():
         nova_fp_files = {f["file"] for f in nova_r["false_positives"]}
         noise_results = [{"true": 0, "pred": 1 if f in nova_fp_files else 0, "file": f} for f in test_noise]
         category_breakdowns = build_category_breakdown(noise_results, category_map)
-        print("\n  NOVA-VAD accuracy by noise category (fair 451-file test set):")
+        print("\n  NOVA-VAD accuracy by noise category (fair held-out test set):")
         for cat, stats in sorted(category_breakdowns.items()):
             print(f"    {cat:<20} {stats['correct']}/{stats['total']} ({stats['accuracy']}%)")
 

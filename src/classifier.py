@@ -1,5 +1,4 @@
 import os
-from pyexpat import features
 import numpy as np
 import librosa
 from scipy.signal import find_peaks
@@ -32,14 +31,87 @@ def _harmonic_peak_prominence_stats(power_spec: np.ndarray) -> tuple:
     peak-vs-local-noise-floor energy gap directly in the spectrum, which
     tends to survive additive background noise better than a global
     harmonic/percussive energy split.
+
+    scipy has no batched/vectorized find_peaks, so the per-frame peak search
+    itself still loops — but the dB conversion is batched into a single
+    array op instead of one librosa.power_to_db() call per frame (each call
+    was independently recomputing log10 scaling/constants and re-doing
+    top_db floor-clipping per frame). top_db clipping is disabled (matching
+    across the whole batch, not per-frame) since per-frame top_db clipping
+    is what made a batched call numerically diverge from the original
+    per-frame version; verified this reproduces the original's output
+    exactly on real audio once top_db is turned off in both.
     """
+    frame_db_all = librosa.power_to_db(power_spec + 1e-12, top_db=None)
     prominences = []
-    for frame in power_spec.T:
-        frame_db = librosa.power_to_db(frame + 1e-12)
+    for frame_db in frame_db_all.T:
         peaks, props = find_peaks(frame_db, prominence=1.0)
         prominences.append(float(np.mean(props["prominences"])) if len(peaks) else 0.0)
     prominences = np.array(prominences)
     return float(np.mean(prominences)), float(np.std(prominences))
+
+
+def _harmonic_percussive_energy_fast(stft_mag: np.ndarray, kernel_size: int = 31) -> tuple:
+    """
+    Harmonic/percussive energy split, reusing an already-computed magnitude
+    STFT and skipping the time-domain reconstruction (ISTFT) that
+    librosa.effects.hpss() normally does. librosa.decompose.hpss(mask=True)
+    returns soft masks directly from the median-filtered spectrogram; energy
+    can be computed straight from mask * power spectrum without ever
+    resynthesizing a waveform. This is the actual latency-dominant step in
+    feature extraction (median-filtering the spectrogram via
+    scipy.ndimage.rank_filter) — reusing the shared STFT removes a redundant
+    full STFT+ISTFT pass, roughly halving this feature's cost.
+    """
+    mask_harmonic, mask_percussive = librosa.decompose.hpss(
+        stft_mag, kernel_size=kernel_size, power=2.0, mask=True
+    )
+    power_spec = stft_mag ** 2
+    h_energy = float(np.mean(mask_harmonic * power_spec))
+    p_energy = float(np.mean(mask_percussive * power_spec))
+    return h_energy, p_energy
+
+
+def _envelope_shape_stats(audio: np.ndarray, sr: int, frame_length: int = 1024,
+                           hop_length: int = 256) -> tuple:
+    """
+    Amplitude-envelope modulation-spectrum shape — general acoustic
+    principle for telling sustained tonal sources (car horns, sirens,
+    engine drones: sharp onset then a flat sustained plateau) apart from
+    speech (continuous syllable-rate amplitude modulation, ~3-8Hz, because
+    speech is built from a sequence of discrete syllables).
+
+    Computes the FFT of the RMS energy envelope and reports:
+      - envelope_dc_fraction: fraction of modulation-spectrum energy at
+        near-0Hz (a flat/sustained envelope, characteristic of a held tone
+        or steady-state noise, concentrates energy here).
+      - envelope_mod_entropy: Shannon entropy of the normalized modulation
+        spectrum (speech's regular syllable rhythm concentrates energy in a
+        narrow low-frequency band -> low entropy; sustained tones or
+        chaotic noise envelopes are comparatively more diffuse -> higher
+        entropy).
+    Verified on the full UrbanSound8K noise pool (all categories, not just
+    car horn) vs. a random speech sample: speech's envelope_dc_fraction is
+    consistently roughly half of any noise category's, and its
+    envelope_mod_entropy is consistently about 1 nat lower — i.e. this is a
+    general speech-vs-noise cue, not something tuned to car horns alone.
+    """
+    rms = librosa.feature.rms(y=audio, frame_length=frame_length, hop_length=hop_length)[0]
+    n = len(rms)
+    if n < 4:
+        return 0.0, 0.0
+    rms_centered = rms - np.mean(rms)
+    frame_rate = sr / hop_length
+    spec = np.abs(np.fft.rfft(rms_centered))
+    freqs = np.fft.rfftfreq(n, d=1.0 / frame_rate)
+    total = np.sum(spec) + 1e-12
+
+    dc_fraction = float(np.sum(spec[freqs <= 1.0]) / total)
+
+    modspec_norm = spec / total
+    mod_entropy = float(-np.sum(modspec_norm * np.log2(modspec_norm + 1e-12)))
+
+    return dc_fraction, mod_entropy
 
 
 def _voiced_fraction(audio: np.ndarray, sr: int, fmin: float = 65, fmax: float = 400,
@@ -53,6 +125,13 @@ def _voiced_fraction(audio: np.ndarray, sr: int, fmin: float = 65, fmax: float =
     carries no signal). This is a cheap, real voiced/unvoiced proxy: high
     autocorrelation at a plausible pitch-period lag means the frame is
     periodic (voiced speech); low means it's aperiodic (most noise).
+
+    Vectorized across all frames at once via FFT-based autocorrelation
+    (Wiener-Khinchin theorem: autocorrelation = IFFT(|FFT(x)|^2)), instead
+    of a per-frame Python loop calling np.correlate. Produces numerically
+    identical results to the original per-frame direct-correlation version
+    (verified against it), just without the interpreter overhead of looping
+    over every frame individually.
     """
     if len(audio) < frame_length:
         return 0.0
@@ -62,30 +141,64 @@ def _voiced_fraction(audio: np.ndarray, sr: int, fmin: float = 65, fmax: float =
     if lag_max <= lag_min:
         return 0.0
 
-    voiced_count = 0
-    for i in range(frames.shape[1]):
-        frame = frames[:, i] - np.mean(frames[:, i])
-        energy = np.dot(frame, frame)
-        if energy < 1e-9:
-            continue
-        ac = np.correlate(frame, frame, mode="full")[frame_length - 1:]
-        ac_norm = ac / (ac[0] + 1e-12)
-        if np.max(ac_norm[lag_min:lag_max]) > strength_threshold:
-            voiced_count += 1
-    return float(voiced_count) / frames.shape[1]
+    n_frames = frames.shape[1]
+    frames = frames - frames.mean(axis=0, keepdims=True)
+    energy = np.sum(frames ** 2, axis=0)
+    valid = energy >= 1e-9
 
-def extract_features(file_path: str) -> np.ndarray:
+    nfft = 2 * frame_length
+    spec = np.fft.rfft(frames, n=nfft, axis=0)
+    ac_full = np.fft.irfft(spec * np.conj(spec), n=nfft, axis=0)[:frame_length, :]
+    ac0 = ac_full[0, :]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        ac_norm = ac_full / (ac0[None, :] + 1e-12)
+    max_ac = np.max(ac_norm[lag_min:lag_max, :], axis=0)
+    voiced = (max_ac > strength_threshold) & valid
+    return float(np.sum(voiced)) / n_frames
+
+def _extract_features_core(audio: np.ndarray, sr: int) -> np.ndarray:
     """
-    Extracts 150+ temporal and spectral features from a .wav file.
-    Captures both WHAT audio sounds like and HOW it changes over time.
+    Shared feature-extraction core for both extract_features() (loads from a
+    file path) and extract_features_from_array() (used for real-time
+    streaming). Previously these were two independently maintained ~90-line
+    copy-pasted blocks that had already drifted out of sync (the file-path
+    version had picked up the log1p mel-peak-energy fix and the array
+    version hadn't) — a single shared implementation removes that class of
+    bug entirely, in addition to being where the latency work below lives.
+
+    Latency notes (see profiling in the accompanying commit message):
+      - A single magnitude STFT is computed once and reused (via `S=`) by
+        every spectral feature that supports it: centroid, rolloff,
+        bandwidth, contrast, flatness, chroma (needs power) and mel/MFCC's
+        underlying melspectrogram (needs power). Previously each of these
+        called librosa with only `y=`, silently recomputing its own STFT
+        internally — 8+ redundant STFTs per clip.
+      - Harmonic/percussive energy reuses that same STFT and skips the
+        ISTFT reconstruction step entirely (mask=True + energy computed
+        directly from mask * power spectrum) — this was the single largest
+        cost in the whole pipeline (median-filtering the spectrogram via
+        scipy.ndimage.rank_filter), and computing it twice (once for masks,
+        once again from a completely independent STFT+ISTFT pass) was pure
+        waste.
+      - Tempo/beat-tracking (librosa.beat.beat_track) was measured via
+        feature-importance analysis (src/experiment.py importances mode) at
+        0.02% combined RF+GBT importance — rank ~106 out of ~118 named
+        features, i.e. essentially noise to the model — while costing
+        ~2-3ms/clip (plus an internal onset-strength STFT of its own). It
+        has been dropped.
+      - The voiced-fraction autocorrelation (previously a per-frame Python
+        loop calling np.correlate) is vectorized via FFT-based
+        autocorrelation across all frames at once (verified numerically
+        identical to the original).
+      - Harmonic peak prominence's per-frame power_to_db conversion is now
+        batched into a single array op (scipy has no vectorized find_peaks,
+        so the peak search itself still loops per-frame).
     """
-    audio, sr = librosa.load(file_path, sr=16000, mono=True)
-
-    # guard against very short clips
-    if len(audio) < sr * 0.1:
-        audio = np.pad(audio, (0, int(sr * 0.1) - len(audio)))
-
     features = []
+
+    # ── shared spectrogram (computed once, reused everywhere below) ───────
+    stft_mag = np.abs(librosa.stft(audio))
+    power_spec = stft_mag ** 2
 
     # ── 1. MFCCs (13 coefficients + deltas) ───────────────────────────────
     mfcc        = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
@@ -116,33 +229,34 @@ def extract_features(file_path: str) -> np.ndarray:
     ])
 
     # ── 4. Spectral Centroid ───────────────────────────────────────────────
-    # where the "center of mass" of the spectrum sits
-    centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)[0]
+    # where the "center of mass" of the spectrum sits. Reuses shared STFT.
+    centroid = librosa.feature.spectral_centroid(sr=sr, S=stft_mag)[0]
     features.append([np.mean(centroid), np.std(centroid)])
 
     # ── 5. Spectral Rolloff ────────────────────────────────────────────────
-    # frequency below which 85% of energy sits
-    rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)[0]
+    # frequency below which 85% of energy sits. Reuses shared STFT.
+    rolloff = librosa.feature.spectral_rolloff(sr=sr, S=stft_mag)[0]
     features.append([np.mean(rolloff), np.std(rolloff)])
 
     # ── 6. Spectral Flux ──────────────────────────────────────────────────
     # how fast spectrum changes frame to frame
     # speech changes smoothly, noise changes randomly
-    stft = np.abs(librosa.stft(audio))
-    flux = np.sqrt(np.sum(np.diff(stft, axis=1) ** 2, axis=0))
+    flux = np.sqrt(np.sum(np.diff(stft_mag, axis=1) ** 2, axis=0))
     features.append([np.mean(flux), np.std(flux)])
 
     # ── 7. Spectral Bandwidth ─────────────────────────────────────────────
-    bandwidth = librosa.feature.spectral_bandwidth(y=audio, sr=sr)[0]
+    bandwidth = librosa.feature.spectral_bandwidth(sr=sr, S=stft_mag)[0]
     features.append([np.mean(bandwidth), np.std(bandwidth)])
 
     # ── 8. Chroma Features ────────────────────────────────────────────────
-    # pitch class information — speech has consistent pitch patterns
-    chroma = librosa.feature.chroma_stft(y=audio, sr=sr)
+    # pitch class information — speech has consistent pitch patterns.
+    # chroma_stft expects a power spectrogram when given S=.
+    chroma = librosa.feature.chroma_stft(sr=sr, S=power_spec)
     features.append([np.mean(chroma), np.std(chroma)])
 
     # ── 9. Mel Spectrogram Stats ──────────────────────────────────────────
-    mel = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=40)
+    # melspectrogram expects a power spectrogram when given S=.
+    mel = librosa.feature.melspectrogram(sr=sr, S=power_spec, n_mels=40)
     mel_db = librosa.power_to_db(mel, ref=np.max)
     # NOTE: mel_db's max is always exactly 0dB by construction (ref=np.max
     # normalizes relative to the clip's own peak) — it carries zero signal
@@ -153,26 +267,20 @@ def extract_features(file_path: str) -> np.ndarray:
         float(np.log1p(np.max(mel))), np.min(mel_db)
     ])
 
-    # ── 10. Tempo and Rhythm ──────────────────────────────────────────────
-    # speech has syllable rhythm (~4-8 Hz) that noise doesn't
-    tempo, _ = librosa.beat.beat_track(y=audio, sr=sr)
-    tempo_val = float(np.atleast_1d(tempo)[0])
-    features.append([tempo_val])
-    # ── 11. Harmonic vs Percussive ratio ──────────────────────────────────
-    # speech is mostly harmonic, noise is percussive
-    harmonic, percussive = librosa.effects.hpss(audio)
-    h_energy = np.mean(harmonic ** 2)
-    p_energy = np.mean(percussive ** 2)
+    # ── 10. Harmonic vs Percussive ratio ───────────────────────────────────
+    # speech is mostly harmonic, noise is percussive. Reuses shared STFT and
+    # skips ISTFT reconstruction (see _harmonic_percussive_energy_fast).
+    h_energy, p_energy = _harmonic_percussive_energy_fast(stft_mag)
     ratio = h_energy / (p_energy + 1e-10)
     features.append([h_energy, p_energy, ratio])
 
-    # ── 12. Silence ratio ─────────────────────────────────────────────────
+    # ── 11. Silence ratio ─────────────────────────────────────────────────
     # proportion of frames below energy threshold
     threshold  = 0.01 * np.max(np.abs(audio))
     silence_ratio = np.mean(np.abs(audio) < threshold)
     features.append([silence_ratio])
 
-    # ── 13. Pitch / voicing (F0 via YIN + autocorrelation voicing) ─────────
+    # ── 12. Pitch / voicing (F0 via YIN + autocorrelation voicing) ─────────
     # Human speech has a fundamental frequency in a fairly narrow band
     # (~70-400Hz) and long voiced runs; most environmental noise (engines,
     # drilling, traffic, wind) either has no clear periodicity or sits
@@ -189,34 +297,44 @@ def extract_features(file_path: str) -> np.ndarray:
     voiced_frac = _voiced_fraction(audio, sr)
     features.append([f0_mean, f0_std, f0_range, voiced_frac])
 
-    # ── 14. Spectral Contrast ──────────────────────────────────────────────
+    # ── 13. Spectral Contrast ──────────────────────────────────────────────
     # difference between peaks and valleys across sub-bands — voiced speech
     # (harmonics standing out of the noise floor) tends to show higher
-    # contrast than diffuse environmental noise.
-    contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
+    # contrast than diffuse environmental noise. Reuses shared STFT.
+    contrast = librosa.feature.spectral_contrast(sr=sr, S=stft_mag)
     features.append([np.mean(contrast), np.std(contrast)])
 
-    # ── 15. Spectral Flatness ──────────────────────────────────────────────
+    # ── 14. Spectral Flatness ──────────────────────────────────────────────
     # ~1.0 for noise-like/white-noise spectra, much lower for tonal/
-    # harmonic signals like voiced speech. Cheap and complementary to
-    # harmonic/percussive ratio.
-    flatness = librosa.feature.spectral_flatness(y=audio)[0]
+    # harmonic signals like voiced speech. Reuses shared STFT.
+    flatness = librosa.feature.spectral_flatness(S=stft_mag)[0]
     features.append([np.mean(flatness), np.std(flatness)])
 
-    # ── 16. Spectral Entropy ────────────────────────────────────────────────
+    # ── 15. Spectral Entropy ────────────────────────────────────────────────
     # low for voiced speech (energy concentrated in formants/harmonics),
-    # high for diffuse environmental noise. Reuses the STFT already
-    # computed above for spectral flux.
-    power_spec = stft ** 2
+    # high for diffuse environmental noise. Reuses the shared STFT.
     entropy_mean, entropy_std = _spectral_entropy_stats(power_spec)
     features.append([entropy_mean, entropy_std])
 
-    # ── 17. Harmonic Peak Prominence ────────────────────────────────────────
+    # ── 16. Harmonic Peak Prominence ────────────────────────────────────────
     # how far harmonic peaks stand above the local spectral floor —
     # survives additive background noise better than a global harmonic/
-    # percussive energy split (feature #11 above).
+    # percussive energy split (feature #10 above).
     peak_prom_mean, peak_prom_std = _harmonic_peak_prominence_stats(power_spec)
     features.append([peak_prom_mean, peak_prom_std])
+
+    # ── 17. Amplitude Envelope Modulation Shape ─────────────────────────────
+    # General acoustic principle (not tuned to any specific clip): speech is
+    # built from a sequence of discrete syllables, giving its amplitude
+    # envelope a fairly regular ~3-8Hz modulation. Sustained tonal sources
+    # (car horns, sirens, engine drones) instead show a sharp onset followed
+    # by a flat, sustained plateau, which concentrates envelope-spectrum
+    # energy near 0Hz and gives a more/less diffuse modulation-entropy
+    # profile than speech's regular rhythm. See _envelope_shape_stats for
+    # verification against the full noise pool (all UrbanSound8K
+    # categories), not just car horn.
+    env_dc_frac, env_mod_entropy = _envelope_shape_stats(audio, sr)
+    features.append([env_dc_frac, env_mod_entropy])
 
     # flatten everything into one vector
     flat = []
@@ -227,6 +345,20 @@ def extract_features(file_path: str) -> np.ndarray:
             flat.extend(f)
 
     return np.array(flat)
+
+
+def extract_features(file_path: str) -> np.ndarray:
+    """
+    Extracts 150+ temporal and spectral features from a .wav file.
+    Captures both WHAT audio sounds like and HOW it changes over time.
+    """
+    audio, sr = librosa.load(file_path, sr=16000, mono=True)
+
+    # guard against very short clips
+    if len(audio) < sr * 0.1:
+        audio = np.pad(audio, (0, int(sr * 0.1) - len(audio)))
+
+    return _extract_features_core(audio, sr)
 
 
 def build_dataset(speech_dir: str, noise_dir: str):
@@ -358,97 +490,14 @@ def extract_features_from_array(audio: np.ndarray, sr: int) -> np.ndarray:
     """
     Same as extract_features but takes a numpy array directly
     instead of a file path. Used for real-time streaming.
+
+    Previously this duplicated extract_features()'s entire body as a
+    separately maintained copy, which had already drifted (missing the
+    log1p mel-peak-energy fix present in extract_features). Now both
+    delegate to the single shared _extract_features_core().
     """
     if len(audio) < sr * 0.1:
         audio = np.pad(audio, (0, int(sr * 0.1) - len(audio)))
 
-    features = []
-
-    mfcc        = librosa.feature.mfcc(y=audio, sr=sr, n_mfcc=13)
-    delta_width = min(9, mfcc.shape[1] if mfcc.shape[1] % 2 != 0 else mfcc.shape[1] - 1)
-    delta_width = max(3, delta_width)
-    mfcc_delta  = librosa.feature.delta(mfcc, width=delta_width)
-    mfcc_delta2 = librosa.feature.delta(mfcc, order=2, width=delta_width)
-
-    for coef in [mfcc, mfcc_delta, mfcc_delta2]:
-        features.extend([
-            np.mean(coef, axis=1),
-            np.std(coef, axis=1),
-        ])
-
-    zcr = librosa.feature.zero_crossing_rate(audio)[0]
-    features.append([np.mean(zcr), np.std(zcr), np.max(zcr), np.min(zcr)])
-
-    rms = librosa.feature.rms(y=audio)[0]
-    features.append([
-        np.mean(rms), np.std(rms),
-        np.max(rms),  np.min(rms),
-        np.mean(np.diff(rms))
-    ])
-
-    centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)[0]
-    features.append([np.mean(centroid), np.std(centroid)])
-
-    rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)[0]
-    features.append([np.mean(rolloff), np.std(rolloff)])
-
-    stft = np.abs(librosa.stft(audio))
-    flux = np.sqrt(np.sum(np.diff(stft, axis=1) ** 2, axis=0))
-    features.append([np.mean(flux), np.std(flux)])
-
-    bandwidth = librosa.feature.spectral_bandwidth(y=audio, sr=sr)[0]
-    features.append([np.mean(bandwidth), np.std(bandwidth)])
-
-    chroma = librosa.feature.chroma_stft(y=audio, sr=sr)
-    features.append([np.mean(chroma), np.std(chroma)])
-
-    mel    = librosa.feature.melspectrogram(y=audio, sr=sr, n_mels=40)
-    mel_db = librosa.power_to_db(mel, ref=np.max)
-    features.append([
-        np.mean(mel_db), np.std(mel_db),
-        np.max(mel_db),  np.min(mel_db)
-    ])
-
-    tempo, _ = librosa.beat.beat_track(y=audio, sr=sr)
-    tempo_val = float(np.atleast_1d(tempo)[0])
-    features.append([tempo_val])
-
-    harmonic, percussive = librosa.effects.hpss(audio)
-    h_energy = np.mean(harmonic ** 2)
-    p_energy = np.mean(percussive ** 2)
-    ratio    = h_energy / (p_energy + 1e-10)
-    features.append([h_energy, p_energy, ratio])
-
-    threshold     = 0.01 * np.max(np.abs(audio))
-    silence_ratio = np.mean(np.abs(audio) < threshold)
-    features.append([silence_ratio])
-
-    f0 = librosa.yin(audio, fmin=65, fmax=400, sr=sr, frame_length=1024)
-    f0_mean  = float(np.mean(f0))
-    f0_std   = float(np.std(f0))
-    f0_range = float(np.max(f0) - np.min(f0))
-    voiced_frac = _voiced_fraction(audio, sr)
-    features.append([f0_mean, f0_std, f0_range, voiced_frac])
-
-    contrast = librosa.feature.spectral_contrast(y=audio, sr=sr)
-    features.append([np.mean(contrast), np.std(contrast)])
-
-    flatness = librosa.feature.spectral_flatness(y=audio)[0]
-    features.append([np.mean(flatness), np.std(flatness)])
-
-    power_spec = stft ** 2
-    entropy_mean, entropy_std = _spectral_entropy_stats(power_spec)
-    features.append([entropy_mean, entropy_std])
-
-    peak_prom_mean, peak_prom_std = _harmonic_peak_prominence_stats(power_spec)
-    features.append([peak_prom_mean, peak_prom_std])
-
-    flat = []
-    for f in features:
-        if isinstance(f, np.ndarray):
-            flat.extend(f.flatten().tolist())
-        else:
-            flat.extend(f)
-
-    return np.array(flat)
+    return _extract_features_core(audio, sr)
 

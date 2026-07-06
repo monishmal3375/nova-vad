@@ -25,8 +25,8 @@
   },
   "n_test_files": 451,
   "n_trainval_files": 1349,
-  "mean_latency_ms": 67.87,
-  "model_size_bytes": 1079464,
+  "mean_latency_ms": 38.89,
+  "model_size_bytes": 1041392,
   "rf_params": null,
   "gbt_params": null
 }

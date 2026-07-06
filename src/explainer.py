@@ -44,8 +44,10 @@ def get_feature_names() -> list:
     # Mel Spectrogram (4)
     names += ["Mel mean", "Mel std", "Mel peak energy (log)", "Mel min"]
 
-    # Tempo (1)
-    names += ["Tempo"]
+    # NOTE: Tempo/beat-tracking was dropped from extract_features() — measured
+    # at 0.02% combined RF+GBT feature importance (rank ~106/118) while
+    # costing several ms/clip in latency (see src/classifier.py's
+    # _extract_features_core docstring and the commit that removed it).
 
     # Harmonic/Percussive (3)
     names += ["Harmonic energy", "Percussive energy", "Harmonic ratio"]
@@ -67,6 +69,12 @@ def get_feature_names() -> list:
 
     # Harmonic Peak Prominence (2)
     names += ["Harmonic peak prominence mean", "Harmonic peak prominence std"]
+
+    # Amplitude Envelope Modulation Shape (2) — distinguishes speech's
+    # syllable-rate amplitude modulation from sustained tonal sources
+    # (car horns, sirens, engine drones) whose envelope is mostly a flat
+    # sustained plateau after a sharp onset.
+    names += ["Envelope DC fraction", "Envelope modulation entropy"]
 
     return names
 
@@ -215,13 +223,17 @@ def interpret_feature(name: str, value: float, importance: float) -> str:
         else:
             return "HIGH center — bright or noisy audio"
 
-    elif "Tempo" in name:
-        if value > 100:
-            return f"{value:.0f} BPM — fast rhythm detected"
-        elif value > 60:
-            return f"{value:.0f} BPM — consistent with speech syllable rate"
+    elif "Envelope DC fraction" in name:
+        if value > 0.25:
+            return "HIGH near-DC envelope energy — regular syllable-like amplitude modulation, speech-like"
         else:
-            return f"{value:.0f} BPM — slow or no clear rhythm"
+            return "LOW near-DC envelope energy — flat sustained plateau, consistent with a held tone or steady noise"
+
+    elif "Envelope modulation entropy" in name:
+        if value < 3.6:
+            return "LOW modulation entropy — energy concentrated in a narrow rhythm band, speech-like"
+        else:
+            return "HIGH modulation entropy — diffuse envelope shape, noise-like"
 
     elif "Silence ratio" in name:
         pct = value * 100

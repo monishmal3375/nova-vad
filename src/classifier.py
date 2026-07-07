@@ -1,4 +1,5 @@
 import os
+import functools
 import numpy as np
 import librosa
 from scipy.signal import find_peaks
@@ -7,6 +8,16 @@ from sklearn.model_selection import LeaveOneOut, StratifiedKFold
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
 import joblib
+
+# Every clip in this pipeline is standardized to the same sample rate and
+# window length (see _standardize_duration in src/experiment.py), so the
+# mel/chroma filterbank matrices librosa.feature.melspectrogram()/
+# chroma_stft() rebuild from scratch on every call are byte-identical every
+# time. This caches the exact matrices librosa would otherwise recompute
+# per-clip — not an approximation, same function and output, just not
+# redone 1800+ times for parameters that never change in this codebase.
+librosa.filters.mel = functools.lru_cache(maxsize=8)(librosa.filters.mel)
+librosa.filters.chroma = functools.lru_cache(maxsize=8)(librosa.filters.chroma)
 
 
 def _spectral_entropy_stats(power_spec: np.ndarray) -> tuple:

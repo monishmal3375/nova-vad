@@ -1,15 +1,10 @@
-NOVA-VAD false positive / false negative report (FAIR 451-file comparison)
-Generated: 20260706_151627
-Test set size: 451 (identical split used for the 98.67% held-out number)
+NOVA-VAD false positive / false negative report (FAIR comparison)
+Generated: 20260706_161827
+Test set size: 1498 (identical split used for the documented held-out number)
 
-FALSE POSITIVES (4) — noise misclassified as SPEECH
+FALSE POSITIVES (1) — noise misclassified as SPEECH
 ------------------------------------------------------------
-  noise_043.wav                  predicted=SPEECH actual=NO SPEECH confidence=57.01
-  noise_0685.wav                 predicted=SPEECH actual=NO SPEECH confidence=57.01
-  noise_0856.wav                 predicted=SPEECH actual=NO SPEECH confidence=60.2
-  noise_092.wav                  predicted=SPEECH actual=NO SPEECH confidence=53.34
+  noise_1489.wav                 predicted=SPEECH actual=NO SPEECH confidence=77.64
 
-FALSE NEGATIVES (2) — speech misclassified as NO SPEECH
+FALSE NEGATIVES (0) — speech misclassified as NO SPEECH
 ------------------------------------------------------------
-  speech_0367.wav                predicted=NO SPEECH actual=SPEECH confidence=64.97
-  speech_0716.wav                predicted=NO SPEECH actual=SPEECH confidence=53.78

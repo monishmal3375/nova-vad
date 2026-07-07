@@ -54,6 +54,24 @@ NOVA-VAD is focused on becoming a practical, lightweight, explainable VAD for no
   `data/noise`. Energy Threshold now correctly scores 52.0% (coin-flip, as expected
   for a volume-only heuristic on real-world noise) and every real VAD system beats
   it. See the README's "Benchmark methodology fix" note for full numbers.
+- [x] Fix a duration confound — speech clips (Speech Commands, ~1s) were
+  systematically shorter than noise clips (UrbanSound8K, ~3.5-4s), letting a
+  classifier partly learn "which dataset did this come from" instead of real
+  speech-vs-noise acoustics. `src/experiment.py` now standardizes every clip to a
+  fixed 1-second window before feature extraction, matching `src/stream.py`'s real
+  inference-time chunking.
+- [x] Expand the dataset 3.3x (1,800 → 5,990 files) using the same two
+  already-licensed sources, and check for train/test leakage — UrbanSound8K source
+  recordings (`fsID`) and Speech Commands speakers are now tracked
+  (`backfill_fsid.py`, `backfill_speaker_id.py`) and grouped so a whole source
+  recording or speaker is assigned to train or test as a unit, never split across
+  both. See the README's "Dataset integrity" section for what this changed (or
+  didn't).
+- [x] Cut inference latency 62.8ms → ~25ms — shared spectrograms across features
+  (one STFT reused instead of recomputed per-feature), a validated 2x-decimated
+  HPSS computation (Pearson r=0.99 vs. the original), and cached mel/chroma
+  filterbank construction (verified bit-for-bit identical output, not an
+  approximation).
 
 ## Explainability
 

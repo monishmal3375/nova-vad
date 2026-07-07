@@ -74,7 +74,7 @@ export default function OpengraphImage() {
           }}
         >
           {[
-            { value: "93.0%", label: "Accuracy" },
+            { value: "99.8%", label: "Accuracy" },
             { value: "MIT", label: "Licensed" },
             { value: "0", label: "GPUs required" },
           ].map((stat) => (

@@ -28,22 +28,29 @@ URBANSOUND_CLASSES = {
 # Per-category FINAL totals (not "add N more") -- car_horn (429 total) and
 # gun_shot (374 total) are the hard ceilings in UrbanSound8K, so their targets
 # sit close to that ceiling; the other 8 categories have ~1,000 clips each in
-# the source archive. These are the per-category totals in the dataset that
-# produced this repo's published 99.80% benchmark (~4,091 noise files). This
-# script computes the delta against whatever's already on disk per category
-# (read from the manifest), so it works correctly against an empty
-# data/noise/ (fresh clone) or a partially-populated one alike.
+# the source archive. This script computes the delta against whatever's
+# already on disk per category (read from the manifest), so it works
+# correctly against an empty data/noise/ (fresh clone) or a
+# partially-populated one alike.
+#
+# Round-2 dataset expansion (2026-07-07): the original targets below (420
+# each, 400/350 for the two ceiling categories) produced the dataset behind
+# this repo's published 99.80% benchmark (~4,091 noise files). Bumped the 8
+# non-ceiling categories up to ~1,000 each (near UrbanSound8K's real
+# per-category ceiling for those classes); car_horn and gun_shot targets
+# raised only slightly, toward their known ~429/~374 hard ceilings -- don't
+# expect much more room there.
 PER_CATEGORY_TOTAL_TARGET = {
-    "air_conditioner": 420,
-    "car_horn": 400,        # ~429 total in UrbanSound8K -- near the ceiling
-    "children_playing": 420,
-    "dog_bark": 420,
-    "drilling": 420,
-    "engine_idling": 420,
-    "gun_shot": 350,        # ~374 total in UrbanSound8K -- near the ceiling
-    "jackhammer": 420,
-    "siren": 420,
-    "street_music": 420,
+    "air_conditioner": 1000,
+    "car_horn": 429,        # ~429 total in UrbanSound8K -- at the ceiling
+    "children_playing": 1000,
+    "dog_bark": 1000,
+    "drilling": 1000,
+    "engine_idling": 1000,
+    "gun_shot": 374,        # ~374 total in UrbanSound8K -- at the ceiling
+    "jackhammer": 1000,
+    "siren": 1000,
+    "street_music": 1000,
 }
 
 FILENAME_RE = re.compile(r"^\d+-(\d+)-\d+-\d+\.wav$")

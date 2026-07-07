@@ -17,13 +17,18 @@ SPEECH_URL = "http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz"
 # Google Speech Commands v0.02 has ~105,000 utterances total across ~35 word
 # folders (this is the same corpus src/experiment.py and download_data.py
 # already use, CC BY 4.0). This script tops up whatever's already in
-# data/speech/ up to SPEECH_TOTAL_TARGET (1,901 -- the exact speech count in
-# the dataset that produced this repo's published 99.80% benchmark), so it
-# works correctly whether it's run against an empty data/speech/ (fresh
-# clone) or one that already has some files in it. Computed as a delta, not
-# a fixed "add N more" constant, so a fresh clone reproduces the same final
-# dataset size regardless of what download_data.py happened to fetch first.
-SPEECH_TOTAL_TARGET = 1901
+# data/speech/ up to SPEECH_TOTAL_TARGET, so it works correctly whether it's
+# run against an empty data/speech/ (fresh clone) or one that already has
+# some files in it. Computed as a delta, not a fixed "add N more" constant,
+# so a fresh clone reproduces the same final dataset size regardless of what
+# download_data.py happened to fetch first.
+#
+# Round-2 dataset expansion (2026-07-07): bumped from 1,901 -> 4,200 (~2.2x),
+# roughly matching the noise-side expansion below (8 non-ceiling categories
+# going from ~410 -> ~1,000 each, ~2.4x) so the class balance doesn't shift
+# too far in either direction. Still a small fraction of the ~105,000
+# available, plenty of headroom left for future rounds.
+SPEECH_TOTAL_TARGET = 4200
 
 
 def md5_bytes(data):

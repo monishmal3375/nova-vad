@@ -68,7 +68,8 @@ def get_fair_test_split():
     assumption that silently invalidates a "fair" comparison."""
     data = load_or_build_features()
     y, groups, filenames = data["y"], data["groups"], data["filenames"]
-    train_idx, test_idx = held_out_split(y, groups)
+    split_keys = data.get("split_keys")
+    train_idx, test_idx = held_out_split(y, groups, split_keys=split_keys)
 
     print(f"  Held-out test set reconstructed via held_out_split(seed=42): "
           f"{len(test_idx)} files out of {len(y)} total in data/.")

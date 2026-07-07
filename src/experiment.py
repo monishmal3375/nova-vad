@@ -109,21 +109,46 @@ def load_or_build_features():
     speech_files = sorted(f for f in os.listdir(SPEECH_DIR) if f.endswith(".wav"))
     noise_files = sorted(f for f in os.listdir(NOISE_DIR) if f.endswith(".wav"))
 
+    import csv
+
+    # noise category + fsID (source-recording ID) manifest, written by
+    # download_noise.py / download_noise_expand.py and backfilled by
+    # backfill_fsid.py. fsID is the UrbanSound8K source-recording grouping
+    # key -- multiple 4-second slices can come from the same original field
+    # recording, so held_out_split() must group by fsID, not just category,
+    # or slices from the same recording can leak across train/test.
     manifest_path = os.path.join(NOISE_DIR, "_category_manifest.csv")
     noise_category = {}
+    noise_fsid = {}
     if os.path.exists(manifest_path):
-        import csv
         with open(manifest_path) as fh:
             for row in csv.DictReader(fh):
                 noise_category[row["noise_filename"]] = row["category"]
+                noise_fsid[row["noise_filename"]] = row.get("fsID", "unknown")
 
-    X, y, filenames, groups = [], [], [], []
+    # speech speaker-ID manifest, written by backfill_speaker_id.py from
+    # Google Speech Commands' original "<speaker_hash>_nohash_<n>.wav" file
+    # naming. Same class of leakage risk as fsID -- multiple utterances from
+    # the same speaker split across train/test.
+    speaker_manifest_path = os.path.join(SPEECH_DIR, "_speaker_manifest.csv")
+    speech_speaker = {}
+    if os.path.exists(speaker_manifest_path):
+        with open(speaker_manifest_path) as fh:
+            for row in csv.DictReader(fh):
+                speech_speaker[row["speech_filename"]] = row.get("speaker_id", "unknown")
+
+    X, y, filenames, groups, split_keys = [], [], [], [], []
 
     for i, f in enumerate(speech_files):
         X.append(_extract_features_windowed(os.path.join(SPEECH_DIR, f)))
         y.append(1)
         filenames.append(f)
         groups.append("speech")
+        # group-by key for held_out_split: speaker_id if known, else fall
+        # back to per-file uniqueness (no grouping benefit, but never
+        # silently mixes real speaker-grouping with fabricated grouping)
+        speaker = speech_speaker.get(f, "unknown")
+        split_keys.append(f"speaker:{speaker}" if speaker != "unknown" else f"speech_nogroup:{f}")
         if (i + 1) % 100 == 0:
             print(f"  speech {i+1}/{len(speech_files)}")
 
@@ -132,6 +157,8 @@ def load_or_build_features():
         y.append(0)
         filenames.append(f)
         groups.append(noise_category.get(f, "unknown"))
+        fs_id = noise_fsid.get(f, "unknown")
+        split_keys.append(f"fsid:{fs_id}" if fs_id != "unknown" else f"noise_nogroup:{f}")
         if (i + 1) % 100 == 0:
             print(f"  noise {i+1}/{len(noise_files)}")
 
@@ -139,7 +166,8 @@ def load_or_build_features():
         "X": np.array(X),
         "y": np.array(y),
         "filenames": filenames,
-        "groups": groups,  # "speech" for speech files, UrbanSound8K category for noise
+        "groups": groups,  # "speech" for speech files, UrbanSound8K category for noise (stratification tier)
+        "split_keys": split_keys,  # fine-grained no-leak grouping key: fsID / speaker_id (falls back to per-file)
     }
     os.makedirs(os.path.dirname(CACHE_PATH), exist_ok=True)
     joblib.dump(data, CACHE_PATH)
@@ -147,12 +175,27 @@ def load_or_build_features():
     return data
 
 
-# ── Stratified held-out split (by class AND noise category / speech) ──────
-def held_out_split(y, groups, held_out_fraction=HELD_OUT_FRACTION, seed=RANDOM_STATE):
+# ── Stratified held-out split (by class/category, grouped by source-recording
+#    or speaker so no group ever spans both train and test) ────────────────
+def held_out_split(y, groups, held_out_fraction=HELD_OUT_FRACTION, seed=RANDOM_STATE, split_keys=None):
     """
     Carves off a held-out test set stratified by group (speech vs. each
     UrbanSound8K noise category), so the test set has proportional
     representation of every category, not just overall class balance.
+
+    If `split_keys` is provided (fine-grained grouping key -- UrbanSound8K
+    fsID for noise, speaker_id for speech, see load_or_build_features()),
+    the split additionally guarantees that no single source recording /
+    speaker has clips in BOTH train and test. This matters because
+    UrbanSound8K's own creators warn that multiple 4-second slices cut from
+    the same original field recording (same fsID) can be highly acoustically
+    correlated -- their official folds are grouped by fsID for exactly this
+    reason. Same class of risk applies to multiple utterances from the same
+    Speech Commands speaker.
+
+    Whole split_key groups are assigned entirely to train or entirely to
+    test (never split), while still targeting the requested
+    held_out_fraction within each stratification tier (category/"speech").
     Returns (train_idx, test_idx).
     """
     rng = random.Random(seed)
@@ -160,16 +203,42 @@ def held_out_split(y, groups, held_out_fraction=HELD_OUT_FRACTION, seed=RANDOM_S
     for i, g in enumerate(groups):
         by_group.setdefault(g, []).append(i)
 
+    if split_keys is None:
+        # legacy behavior: no fine-grained grouping info available, fall
+        # back to grouping by category/"speech" tier only (pre-fix behavior)
+        split_keys = list(groups)
+
     test_idx = []
     for g, idxs in by_group.items():
-        idxs = idxs[:]
-        rng.shuffle(idxs)
-        n_test = max(1, round(len(idxs) * held_out_fraction))
-        test_idx.extend(idxs[:n_test])
+        n_target = max(1, round(len(idxs) * held_out_fraction))
+
+        # cluster this tier's indices by split_key (fsID / speaker_id / or
+        # per-file fallback), so we can assign whole clusters at a time and
+        # never split one source recording or speaker across train/test
+        clusters = {}
+        for i in idxs:
+            clusters.setdefault(split_keys[i], []).append(i)
+
+        cluster_keys = list(clusters.keys())
+        rng.shuffle(cluster_keys)
+
+        selected = []
+        for ck in cluster_keys:
+            if len(selected) >= n_target:
+                break
+            selected.extend(clusters[ck])
+        test_idx.extend(selected)
 
     test_idx = sorted(test_idx)
     test_set = set(test_idx)
     train_idx = [i for i in range(len(y)) if i not in test_set]
+
+    # invariant check: no split_key should ever appear on both sides
+    train_keys = {split_keys[i] for i in train_idx}
+    test_keys = {split_keys[i] for i in test_idx}
+    overlap = train_keys & test_keys
+    assert not overlap, f"held_out_split leaked {len(overlap)} split_key group(s) across train/test: {list(overlap)[:5]}"
+
     return np.array(train_idx), np.array(test_idx)
 
 
@@ -391,10 +460,13 @@ def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "cv"
     data = load_or_build_features()
     X, y, groups = data["X"], data["y"], data["groups"]
+    split_keys = data.get("split_keys")
     print(f"\nTotal dataset: {len(y)} files ({int(np.sum(y==1))} speech, {int(np.sum(y==0))} noise)")
 
-    train_idx, test_idx = held_out_split(y, groups)
-    print(f"Held-out test set: {len(test_idx)} files (stratified by class/category, never used for tuning)")
+    train_idx, test_idx = held_out_split(y, groups, split_keys=split_keys)
+    print(f"Held-out test set: {len(test_idx)} files (stratified by class/category, "
+          f"grouped by fsID/speaker so no source recording or speaker spans train/test, "
+          f"never used for tuning)")
     print(f"Train/val pool:    {len(train_idx)} files")
 
     X_trainval, y_trainval = X[train_idx], y[train_idx]

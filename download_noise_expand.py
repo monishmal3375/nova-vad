@@ -25,21 +25,25 @@ URBANSOUND_CLASSES = {
     9: "street_music",
 }
 
-# Per-category expansion targets. car_horn (429 total) and gun_shot (374 total)
-# are the hard ceilings in UrbanSound8K, so we take nearly everything left for
-# those two thin categories. The other 8 categories have ~1000 clips each, so
-# we target a larger absolute number there too, well beyond a token addition.
-PER_CATEGORY_NEW_TARGET = {
-    "air_conditioner": 320,
-    "car_horn": 340,       # ~429 total, ~87 already used -> take most of the rest
-    "children_playing": 320,
-    "dog_bark": 320,
-    "drilling": 320,
-    "engine_idling": 320,
-    "gun_shot": 290,       # ~374 total, ~83 already used -> take most of the rest
-    "jackhammer": 320,
-    "siren": 320,
-    "street_music": 320,
+# Per-category FINAL totals (not "add N more") -- car_horn (429 total) and
+# gun_shot (374 total) are the hard ceilings in UrbanSound8K, so their targets
+# sit close to that ceiling; the other 8 categories have ~1,000 clips each in
+# the source archive. These are the per-category totals in the dataset that
+# produced this repo's published 99.80% benchmark (~4,091 noise files). This
+# script computes the delta against whatever's already on disk per category
+# (read from the manifest), so it works correctly against an empty
+# data/noise/ (fresh clone) or a partially-populated one alike.
+PER_CATEGORY_TOTAL_TARGET = {
+    "air_conditioner": 420,
+    "car_horn": 400,        # ~429 total in UrbanSound8K -- near the ceiling
+    "children_playing": 420,
+    "dog_bark": 420,
+    "drilling": 420,
+    "engine_idling": 420,
+    "gun_shot": 350,        # ~374 total in UrbanSound8K -- near the ceiling
+    "jackhammer": 420,
+    "siren": 420,
+    "street_music": 420,
 }
 
 FILENAME_RE = re.compile(r"^\d+-(\d+)-\d+-\d+\.wav$")
@@ -70,6 +74,20 @@ def main():
             existing_hashes.add(md5_of(os.path.join(NOISE_DIR, f)))
     print(f"Existing noise files on disk: {len(existing_hashes)} (hashed for overlap check)")
 
+    # Read existing per-category counts from the manifest (if any) so the
+    # delta-to-target below works whether data/noise/ is empty (fresh clone)
+    # or already partially populated.
+    existing_per_category = {name: 0 for name in URBANSOUND_CLASSES.values()}
+    manifest_path = os.path.join(NOISE_DIR, "_category_manifest.csv")
+    if os.path.exists(manifest_path):
+        import csv
+        with open(manifest_path) as fh:
+            for row in csv.DictReader(fh):
+                cat = row.get("category")
+                if cat in existing_per_category:
+                    existing_per_category[cat] += 1
+    print("Existing per-category counts:", existing_per_category)
+
     print("Downloading + streaming UrbanSound8K dataset (no local .tar.gz kept)...")
     URL = "https://zenodo.org/record/1203745/files/UrbanSound8K.tar.gz"
 
@@ -79,7 +97,11 @@ def main():
     # ~5.6GB archive on disk at once -- extract each wav, hash it, either
     # keep it (if new) or discard it immediately (if a dup of what we have).
     kept_by_class = {class_id: [] for class_id in URBANSOUND_CLASSES}
-    target_by_class = {cid: PER_CATEGORY_NEW_TARGET[name] for cid, name in URBANSOUND_CLASSES.items()}
+    target_by_class = {
+        cid: max(0, PER_CATEGORY_TOTAL_TARGET[name] - existing_per_category[name])
+        for cid, name in URBANSOUND_CLASSES.items()
+    }
+    print("Per-category download targets (delta to reach final total):", target_by_class)
 
     # Two-pass isn't feasible without holding the whole archive, so we do a
     # single streaming pass: extract every wav to a scratch path, hash+classify,

@@ -16,10 +16,14 @@ SPEECH_URL = "http://download.tensorflow.org/data/speech_commands_v0.02.tar.gz"
 
 # Google Speech Commands v0.02 has ~105,000 utterances total across ~35 word
 # folders (this is the same corpus src/experiment.py and download_data.py
-# already use, CC BY 4.0). Currently 900 files are in use. Target a
-# substantial, non-overlapping expansion -- more than double the current set --
-# balanced against reasonable download/processing time (streaming ~2.3GB tar).
-NEW_TARGET = 1000
+# already use, CC BY 4.0). This script tops up whatever's already in
+# data/speech/ up to SPEECH_TOTAL_TARGET (1,901 -- the exact speech count in
+# the dataset that produced this repo's published 99.80% benchmark), so it
+# works correctly whether it's run against an empty data/speech/ (fresh
+# clone) or one that already has some files in it. Computed as a delta, not
+# a fixed "add N more" constant, so a fresh clone reproduces the same final
+# dataset size regardless of what download_data.py happened to fetch first.
+SPEECH_TOTAL_TARGET = 1901
 
 
 def md5_bytes(data):
@@ -35,6 +39,12 @@ def main():
                 for chunk in iter(lambda: fh.read(65536), b""):
                     h.update(chunk)
             existing_hashes.add(h.hexdigest())
+
+    NEW_TARGET = max(0, SPEECH_TOTAL_TARGET - len(existing_hashes))
+    if NEW_TARGET == 0:
+        print(f"data/speech/ already has {len(existing_hashes)} files "
+              f">= target {SPEECH_TOTAL_TARGET}. Nothing to do.")
+        return
     print(f"Existing speech files on disk: {len(existing_hashes)} (hashed for overlap check)")
 
     print("Streaming Speech Commands v0.02 (no local .tar.gz kept)...")

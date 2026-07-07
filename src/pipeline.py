@@ -1,67 +1,75 @@
 import os
-from src.denoiser import denoise_folder
-from src.vad import detect_speech
-from src.classifier import train_and_evaluate
+import subprocess
+import sys
+
+
+def _count_wavs(path):
+    if not os.path.isdir(path):
+        return 0
+    return len([f for f in os.listdir(path) if f.endswith(".wav")])
+
+
+def _run(cmd, description):
+    print("\n" + "=" * 60)
+    print(f"  {description}")
+    print("=" * 60)
+    subprocess.run(cmd, check=True)
+
 
 def run_pipeline():
-    print("=" * 50)
+    """
+    End-to-end: download the same dataset scale, run the same leakage-safe
+    train/held-out split, and train the same ensemble used for this repo's
+    published benchmark (see README.md and ROADMAP.md's "Dataset integrity"
+    section). Safe to re-run -- each step skips or tops-up rather than
+    re-downloading/re-training from scratch once already satisfied.
+
+    Note on exact reproducibility: each fresh run of the *_expand scripts
+    streams a fresh random subsample from the source archives, so the exact
+    files (and therefore the exact accuracy to the second decimal place)
+    will vary slightly run to run -- this is expected. What stays constant
+    is the methodology: same two licensed sources, same dataset scale, same
+    duration-standardization, same source-recording/speaker-grouped
+    held-out split, same default (untuned) hyperparameters.
+    """
+    print("=" * 60)
     print("   NOVA-VAD PIPELINE")
-    print("=" * 50)
+    print("=" * 60)
 
-    RAW_SPEECH   = "data/speech"
-    RAW_NOISE    = "data/noise"
-    CLEAN_SPEECH = "data/clean_speech"
-    CLEAN_NOISE  = "data/clean_noise"
+    if _count_wavs("data/speech") == 0:
+        _run([sys.executable, "download_data.py"],
+             "STEP 1a: Downloading base speech data (Google Speech Commands)")
+    if _count_wavs("data/noise") == 0:
+        _run([sys.executable, "download_noise.py"],
+             "STEP 1b: Downloading base noise data (UrbanSound8K)")
 
-    # step 1 — denoise
-    print("\n[ STEP 1 ] Denoising audio files...\n")
-    denoise_folder(RAW_SPEECH, CLEAN_SPEECH)
-    denoise_folder(RAW_NOISE,  CLEAN_NOISE)
+    _run([sys.executable, "download_speech_expand.py"],
+         "STEP 2a: Expanding speech dataset to the published dataset scale")
+    _run([sys.executable, "download_noise_expand.py"],
+         "STEP 2b: Expanding noise dataset to the published dataset scale")
 
-    # step 2 — WebRTC baseline
-    print("\n[ STEP 2 ] WebRTC VAD Baseline...\n")
-    results = []
-    speech_files = sorted([f for f in os.listdir(CLEAN_SPEECH) if f.endswith(".wav")])
-    noise_files  = sorted([f for f in os.listdir(CLEAN_NOISE)  if f.endswith(".wav")])
+    _run([sys.executable, "backfill_fsid.py"],
+         "STEP 3a: Recovering UrbanSound8K source-recording IDs (for leakage-safe splitting)")
+    _run([sys.executable, "backfill_speaker_id.py"],
+         "STEP 3b: Recovering Speech Commands speaker IDs (for leakage-safe splitting)")
 
-    for f in speech_files:
-        r = detect_speech(os.path.join(CLEAN_SPEECH, f))
-        r["true_label"] = 1
-        r["correct"]    = r["prediction"] == 1
-        results.append(r)
-        if len(results) % 50 == 0:
-            print(f"  WebRTC: {len(results)} files evaluated...")
+    cache_path = "data/_feature_cache.joblib"
+    if os.path.exists(cache_path):
+        # Stale features silently produce wrong results after a data change --
+        # always clear this before (re)training.
+        os.remove(cache_path)
 
-    for f in noise_files:
-        r = detect_speech(os.path.join(CLEAN_NOISE, f))
-        r["true_label"] = 0
-        r["correct"]    = r["prediction"] == 0
-        results.append(r)
-        if len(results) % 50 == 0:
-            print(f"  WebRTC: {len(results)} files evaluated...")
+    _run([sys.executable, "-m", "src.experiment", "final"],
+         "STEP 4: Training + evaluating on the leakage-safe held-out split")
 
-    total           = len(results)
-    correct         = sum(1 for r in results if r["correct"])
-    webrtc_accuracy = round(correct / total * 100, 2)
-    print(f"\n  WebRTC accuracy: {webrtc_accuracy}%")
+    print("\n" + "=" * 60)
+    print("   DONE")
+    print("=" * 60)
+    print("  Exact numbers: results/final_model_report.json")
+    print("  Explain a single file:  python3 -m src.explainer data/speech/speech_0001.wav")
+    print("  Compare against every baseline on identical audio:")
+    print("      python3 -m src.fair_comparison")
 
-    # step 3 — NOVA-VAD
-    print("\n[ STEP 3 ] NOVA-VAD (150+ features + Ensemble)...\n")
-    metrics = train_and_evaluate(CLEAN_SPEECH, CLEAN_NOISE)
-
-    # final results
-    print("\n" + "=" * 50)
-    print("   FINAL RESULTS")
-    print("=" * 50)
-    print(f"  Total files:              {metrics['total']}")
-    print(f"  WebRTC VAD (baseline):    {webrtc_accuracy}%")
-    print(f"  NOVA-VAD (ours):          {metrics['accuracy']}%")
-    print(f"  Improvement:              +{round(metrics['accuracy'] - webrtc_accuracy, 2)}%")
-    print(f"\n  Precision:  {metrics['precision']}%")
-    print(f"  Recall:     {metrics['recall']}%")
-    print(f"  F1 Score:   {metrics['f1_score']}%")
-    print(f"\n  TP: {metrics['tp']}  TN: {metrics['tn']}  FP: {metrics['fp']}  FN: {metrics['fn']}")
-    print("=" * 50)
 
 if __name__ == "__main__":
     run_pipeline()

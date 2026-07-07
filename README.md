@@ -186,11 +186,25 @@ cd nova-vad
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python3 download_data.py
 python3 -m src.pipeline
 ```
 
-The first full run downloads data, trains the ensemble, and saves local model files into `models/`.
+`python3 -m src.pipeline` runs the full sequence used to produce the numbers in this
+README: downloads the same two licensed sources (Google Speech Commands, UrbanSound8K)
+at the same dataset scale (5,990 files), recovers source-recording/speaker IDs for
+leakage-safe splitting, and trains the final model on the same held-out methodology as
+`src/experiment.py`. It's safe to re-run — each step skips or tops up rather than
+re-downloading from scratch. Takes a while the first time (UrbanSound8K alone is a
+multi-GB streamed download); saves trained models into `models/` and the final metrics
+to `results/final_model_report.json`.
+
+**On exact reproducibility**: each fresh run downloads a newly-sampled random subset from
+the source archives, so your exact accuracy will differ from this README's by a small
+amount (a fraction of a point, typically) — that's expected, not a bug. What stays
+identical is the methodology: same sources, same scale, same leakage-safe split, same
+untuned default hyperparameters. If you want the literal comparison table from this
+README instead of retraining, `results/fair_comparison_final.json` in this repo already
+has it.
 
 ### Explain a Prediction
 ```bash

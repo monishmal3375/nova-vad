@@ -208,28 +208,50 @@ def held_out_split(y, groups, held_out_fraction=HELD_OUT_FRACTION, seed=RANDOM_S
         # back to grouping by category/"speech" tier only (pre-fix behavior)
         split_keys = list(groups)
 
-    test_idx = []
-    for g, idxs in by_group.items():
+    # Build GLOBAL clusters by split_key first (across ALL groups/categories,
+    # not per-group). This matters because a single UrbanSound8K source
+    # recording (fsID) can legitimately contain slices labeled under two
+    # DIFFERENT categories (e.g. the same field recording yields both
+    # car_horn and engine_idling clips) -- if clusters were decided per-group
+    # independently, the same fsID could end up assigned to train in one
+    # category's pass and test in another's, which is still a leak even
+    # though each individual group-loop looks "clean" in isolation.
+    global_clusters = {}
+    for i, sk in enumerate(split_keys):
+        global_clusters.setdefault(sk, []).append(i)
+
+    # Decide each cluster's assignment (train/test) exactly once, globally,
+    # while still targeting each group's (category/"speech") held-out
+    # fraction as closely as possible. Process groups in a stable order and,
+    # within each group, only decide clusters that haven't been decided yet
+    # (a cluster whose split_key already appeared in an earlier group keeps
+    # whatever side it was already assigned).
+    cluster_assignment = {}  # split_key -> "test" or "train"
+
+    for g in sorted(by_group.keys()):
+        idxs = by_group[g]
         n_target = max(1, round(len(idxs) * held_out_fraction))
 
-        # cluster this tier's indices by split_key (fsID / speaker_id / or
-        # per-file fallback), so we can assign whole clusters at a time and
-        # never split one source recording or speaker across train/test
-        clusters = {}
-        for i in idxs:
-            clusters.setdefault(split_keys[i], []).append(i)
+        n_already_test = sum(
+            1 for i in idxs if cluster_assignment.get(split_keys[i]) == "test"
+        )
 
-        cluster_keys = list(clusters.keys())
-        rng.shuffle(cluster_keys)
+        undecided_keys = sorted({
+            split_keys[i] for i in idxs if split_keys[i] not in cluster_assignment
+        })
+        rng.shuffle(undecided_keys)
 
-        selected = []
-        for ck in cluster_keys:
-            if len(selected) >= n_target:
-                break
-            selected.extend(clusters[ck])
-        test_idx.extend(selected)
+        n_test_so_far = n_already_test
+        for ck in undecided_keys:
+            if n_test_so_far >= n_target:
+                cluster_assignment[ck] = "train"
+                continue
+            cluster_assignment[ck] = "test"
+            n_test_so_far += len(global_clusters[ck])
 
-    test_idx = sorted(test_idx)
+    test_idx = sorted(
+        i for i, sk in enumerate(split_keys) if cluster_assignment.get(sk) == "test"
+    )
     test_set = set(test_idx)
     train_idx = [i for i in range(len(y)) if i not in test_set]
 

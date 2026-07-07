@@ -10,7 +10,7 @@ On a fair, apples-to-apples benchmark — every model scored on the identical 1,
 
 **Links**
 
-- Website: [novavad.dev](website/) *(run locally for now — see [website/README](website/README.md))*
+- Website: [`website/`](website/) *(not deployed yet — clone and run locally, see [website/README.md](website/README.md))*
 - Hugging Face: https://huggingface.co/monishmal0204/nova-vad
 - X: https://x.com/Nova_vad
 - Roadmap: [ROADMAP.md](ROADMAP.md)

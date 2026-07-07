@@ -1,0 +1,32 @@
+{
+  "ensemble_mode": "average",
+  "cv_summary": {
+    "label": "final-cv",
+    "n_splits": 5,
+    "acc_mean": 99.78,
+    "acc_std": 0.16,
+    "f1_mean": 99.65,
+    "f1_std": 0.25,
+    "precision_mean": 99.58,
+    "recall_mean": 99.72,
+    "fold_accuracies": [
+      100.0,
+      99.55,
+      99.66,
+      99.78,
+      99.89
+    ]
+  },
+  "held_out_test_metrics": {
+    "accuracy": 99.8,
+    "precision": 99.58,
+    "recall": 99.79,
+    "f1": 99.68
+  },
+  "n_test_files": 1538,
+  "n_trainval_files": 4452,
+  "mean_latency_ms": 15.39,
+  "model_size_bytes": 1878944,
+  "rf_params": null,
+  "gbt_params": null
+}

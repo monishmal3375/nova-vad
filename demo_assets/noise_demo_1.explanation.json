@@ -1,0 +1,67 @@
+{
+  "file": "noise_demo_1.wav",
+  "label": "NO SPEECH",
+  "confidence": 52.5,
+  "top_features": [
+    {
+      "feature": "MFCC Delta 1 std",
+      "importance": 10.37,
+      "value": 1.0028,
+      "meaning": "LOW spectral change rate \u2014 static or repetitive noise"
+    },
+    {
+      "feature": "Silence ratio",
+      "importance": 5.98,
+      "value": 0.0239,
+      "meaning": "2% silence \u2014 highly active audio"
+    },
+    {
+      "feature": "MFCC Delta 2 std",
+      "importance": 5.19,
+      "value": 0.4212,
+      "meaning": "LOW acceleration \u2014 slowly changing or static audio"
+    },
+    {
+      "feature": "MFCC 1 std",
+      "importance": 4.81,
+      "value": 5.8112,
+      "meaning": "LOW variability \u2014 stable spectral content"
+    },
+    {
+      "feature": "MFCC 2 std",
+      "importance": 4.49,
+      "value": 2.6904,
+      "meaning": "LOW variability \u2014 stable spectral content"
+    },
+    {
+      "feature": "Harmonic ratio",
+      "importance": 4.25,
+      "value": 0.9852,
+      "meaning": "LOW \u2014 noise dominated, not speech-like"
+    },
+    {
+      "feature": "Spectral centroid std",
+      "importance": 4.14,
+      "value": 53.8755,
+      "meaning": "STABLE frequency center \u2014 consistent with speech"
+    },
+    {
+      "feature": "Spectral rolloff std",
+      "importance": 4.03,
+      "value": 63.5408,
+      "meaning": "LOW variation \u2014 stable high-frequency cutoff, speech-like"
+    },
+    {
+      "feature": "Mel mean",
+      "importance": 3.43,
+      "value": -4.8676,
+      "meaning": "HIGH energy \u2014 loud or close-range audio"
+    },
+    {
+      "feature": "Spectral flux std",
+      "importance": 2.29,
+      "value": 4.7748,
+      "meaning": "value: 4.7748"
+    }
+  ]
+}

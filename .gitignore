@@ -15,3 +15,4 @@ build/
 .env
 data/mic_speech/
 data/mic_noise/
+data/_feature_cache.joblib

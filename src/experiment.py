@@ -436,6 +436,172 @@ def run_search(X_trainval, y_trainval, n_iter=40):
     return rf_search.best_params_, gbt_search.best_params_
 
 
+# ── Joint accuracy/latency hyperparameter search ────────────────────────────
+# `run_search` above (mode "search") optimizes accuracy alone via
+# RandomizedSearchCV -- its output (results/best_hyperparams.json) is NOT
+# what's used in the trusted baseline, which deliberately uses plain
+# defaults (n_estimators=200/max_depth=10 RF, n_estimators=100 GBT). Since
+# inference latency scales with model complexity (more/deeper trees means
+# more splits to walk per prediction), there is a real, separate question
+# from "what's most accurate": what's the best ACCURACY-PER-MILLISECOND
+# tradeoff. This searches a smaller, latency-aware candidate grid (biased
+# toward cheaper models than run_search's grid, which goes up to
+# n_estimators=600/max_depth=20), scores each candidate on the SAME 5-fold
+# CV methodology as run_cv/run_search (train/val pool only, held-out test
+# set never touched), and additionally measures each candidate's REAL
+# inference latency (predict_proba wall-clock time on the actual fitted
+# models, not a proxy like tree count) so the tradeoff is grounded in a
+# measured number, not a guess.
+#
+# Objective: acc_mean - LATENCY_PENALTY_PER_MS * inference_latency_ms.
+# LATENCY_PENALTY_PER_MS=0.05 means "1ms of extra inference latency must buy
+# at least 0.05 accuracy points to be worth it" -- a candidate that trades
+# 0.02% accuracy for a 5ms latency cut is preferred; one that trades 2%
+# accuracy for the same 5ms is not. This is a judgment call, not a derived
+# constant -- reported alongside raw accuracy/latency for every candidate so
+# the tradeoff is inspectable, not hidden inside a single score.
+LATENCY_PENALTY_PER_MS = 0.05
+
+
+def _measure_inference_latency_ms(rf, gbt, scaler, X_sample, n_repeats=3):
+    """
+    Real wall-clock inference latency (scaler transform + RF/GBT
+    predict_proba + averaging) per sample, matching what final_model_report
+    actually times for the "inference" portion of end-to-end latency (see
+    src/experiment.py mode "final"). Measured on already-extracted features
+    (X_sample rows), so this isolates model-complexity cost from
+    feature-extraction cost, which doesn't change with hyperparameters.
+    Repeated a few times and averaged to reduce timer noise from a single
+    run (same spirit as re-running latency checks 2-3x under system load,
+    per this repo's established practice -- see commit 765c859).
+    """
+    X_scaled = scaler.transform(X_sample)
+    per_sample_times = []
+    for _ in range(n_repeats):
+        t0 = time.time()
+        rf_probs = rf.predict_proba(X_scaled)[:, 1]
+        gbt_probs = gbt.predict_proba(X_scaled)[:, 1]
+        _ = (rf_probs + gbt_probs) / 2
+        elapsed = time.time() - t0
+        per_sample_times.append(elapsed / len(X_sample) * 1000)
+    return float(np.median(per_sample_times))
+
+
+def run_latency_aware_search(X_trainval, y_trainval, n_candidates=24, latency_penalty=LATENCY_PENALTY_PER_MS):
+    """
+    Joint accuracy/latency hyperparameter search. Returns (best_rf_params,
+    best_gbt_params, all_candidate_results) where all_candidate_results is
+    every candidate's CV accuracy, measured inference latency, and combined
+    score, sorted best-first -- so a "didn't beat the baseline" outcome is
+    visible in the saved artifact, not just the winner.
+    """
+    scaler = StandardScaler()
+    X_scaled = scaler.fit_transform(X_trainval)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=RANDOM_STATE)
+
+    # Latency-aware candidate grid: biased toward SMALLER/SHALLOWER models
+    # than run_search's accuracy-only grid (which searches up to
+    # n_estimators=600, max_depth=20/None). Includes the current production
+    # defaults (RF 200/10, GBT 100/0.1) as an explicit candidate so the
+    # search can honestly conclude "the default is already the best
+    # tradeoff" instead of being structurally unable to pick it.
+    rng = np.random.RandomState(RANDOM_STATE)
+    rf_grid = {
+        "n_estimators": [50, 75, 100, 150, 200],
+        "max_depth": [4, 6, 8, 10, 12],
+        "min_samples_leaf": [1, 2, 4],
+        "max_features": ["sqrt", "log2"],
+    }
+    gbt_grid = {
+        "n_estimators": [30, 50, 75, 100],
+        "learning_rate": [0.05, 0.1, 0.15, 0.2],
+        "max_depth": [2, 3, 4],
+        "subsample": [0.8, 1.0],
+    }
+
+    def sample_params(grid):
+        # .item() / native cast so candidates are JSON-serializable (np.int64
+        # / np.float64 from rng.choice() otherwise break json.dump later)
+        out = {}
+        for k, v in grid.items():
+            if isinstance(v[0], str):
+                out[k] = v[rng.randint(len(v))]
+            else:
+                chosen = rng.choice(v)
+                out[k] = chosen.item() if hasattr(chosen, "item") else chosen
+        return out
+
+    candidates = [
+        {"rf": dict(n_estimators=200, max_depth=10),
+         "gbt": dict(n_estimators=100, learning_rate=0.1)},  # current production default
+    ]
+    seen = {("default",)}
+    while len(candidates) < n_candidates:
+        rf_p = sample_params(rf_grid)
+        gbt_p = sample_params(gbt_grid)
+        key = (tuple(sorted(rf_p.items())), tuple(sorted(gbt_p.items())))
+        if key in seen:
+            continue
+        seen.add(key)
+        candidates.append({"rf": rf_p, "gbt": gbt_p})
+
+    print(f"\nJoint accuracy/latency search: {len(candidates)} candidates, "
+          f"5-fold CV each (train/val pool only), latency_penalty={latency_penalty}/ms")
+
+    # Reusable held-back latency-measurement sample: 200 rows from the
+    # train/val pool (never the held-out test set), same features every
+    # candidate is timed on so latency comparisons are apples-to-apples.
+    lat_sample_idx = rng.choice(len(X_trainval), size=min(200, len(X_trainval)), replace=False)
+    X_lat_sample = X_trainval[lat_sample_idx]
+
+    results = []
+    for i, cand in enumerate(candidates):
+        rf_params, gbt_params = cand["rf"], cand["gbt"]
+        fold_accs = []
+        for train_idx, val_idx in cv.split(X_scaled, y_trainval):
+            rf, gbt = make_models(rf_params, gbt_params)
+            rf.fit(X_scaled[train_idx], y_trainval[train_idx])
+            gbt.fit(X_scaled[train_idx], y_trainval[train_idx])
+            rf_probs = rf.predict_proba(X_scaled[val_idx])[:, 1]
+            gbt_probs = gbt.predict_proba(X_scaled[val_idx])[:, 1]
+            preds = ((rf_probs + gbt_probs) / 2 > 0.5).astype(int)
+            fold_accs.append(accuracy_score(y_trainval[val_idx], preds))
+        acc_mean = float(np.mean(fold_accs)) * 100
+        acc_std = float(np.std(fold_accs)) * 100
+
+        # refit on the full train/val pool once for a realistic latency
+        # measurement (fold-sized models would understate real model size)
+        rf_full, gbt_full = make_models(rf_params, gbt_params)
+        rf_full.fit(X_scaled, y_trainval)
+        gbt_full.fit(X_scaled, y_trainval)
+        inf_latency_ms = _measure_inference_latency_ms(rf_full, gbt_full, scaler, X_lat_sample)
+
+        score = acc_mean - latency_penalty * inf_latency_ms
+        label = "default" if cand["rf"] == dict(n_estimators=200, max_depth=10) and \
+            cand["gbt"] == dict(n_estimators=100, learning_rate=0.1) else f"candidate_{i}"
+        results.append({
+            "label": label, "rf_params": rf_params, "gbt_params": gbt_params,
+            "cv_acc_mean": round(acc_mean, 3), "cv_acc_std": round(acc_std, 3),
+            "inference_latency_ms": round(inf_latency_ms, 4), "score": round(score, 4),
+        })
+        print(f"  [{i+1}/{len(candidates)}] {label:<14} acc={acc_mean:.2f}%+/-{acc_std:.2f}  "
+              f"inf_latency={inf_latency_ms:.3f}ms  score={score:.3f}  "
+              f"rf={rf_params}  gbt={gbt_params}")
+
+    results.sort(key=lambda r: r["score"], reverse=True)
+    best = results[0]
+    default_result = next(r for r in results if r["label"] == "default")
+    print(f"\nBest by joint score: {best['label']} "
+          f"(acc={best['cv_acc_mean']}%, inf_latency={best['inference_latency_ms']}ms, score={best['score']})")
+    print(f"Default for comparison: acc={default_result['cv_acc_mean']}%, "
+          f"inf_latency={default_result['inference_latency_ms']}ms, score={default_result['score']}")
+    if best["label"] == "default":
+        print("Joint search did NOT find anything beating the current production default -- "
+              "keeping defaults is the honest outcome here.")
+
+    return best["rf_params"], best["gbt_params"], results
+
+
 # ── Feature importance + correlation pruning analysis ──────────────────────
 def run_importances(X, y):
     scaler = StandardScaler()
@@ -512,6 +678,27 @@ def main():
 
     elif mode == "importances":
         run_importances(X_trainval, y_trainval)
+
+    elif mode == "search_latency":
+        n_candidates = int(sys.argv[2]) if len(sys.argv) > 2 else 24
+        penalty = float(sys.argv[3]) if len(sys.argv) > 3 else LATENCY_PENALTY_PER_MS
+        rf_best, gbt_best, all_results = run_latency_aware_search(
+            X_trainval, y_trainval, n_candidates=n_candidates, latency_penalty=penalty
+        )
+        out_path = os.path.join(RESULTS_DIR, "latency_aware_search.json")
+        with open(out_path, "w") as f:
+            json.dump({
+                "latency_penalty_per_ms": penalty,
+                "n_candidates": n_candidates,
+                "best_rf_params": rf_best,
+                "best_gbt_params": gbt_best,
+                "all_candidates_sorted_by_score": all_results,
+            }, f, indent=2)
+        print(f"\nSaved all candidate results to {out_path}")
+        print("NOTE: this does NOT overwrite results/best_hyperparams.json -- "
+              "inspect results before deciding whether to adopt these params "
+              "for the trusted baseline (mode 'final' only uses "
+              "best_hyperparams.json if it exists).")
 
     elif mode == "ensemble":
         # compare naive averaging vs stacking vs cost-sensitive threshold

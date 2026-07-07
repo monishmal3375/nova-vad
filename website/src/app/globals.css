@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+:root {
+  --background: #05070c;
+  --surface: #0b0f18;
+  --surface-2: #121826;
+  --border: #1e2738;
+  --foreground: #f1f5f9;
+  --muted: #8b96ac;
+  --primary: #4cd3f5;
+  --primary-dim: #2a9fc4;
+  --wave-blue: #4a7ba6;
+  --wave-blue-dim: #2e4a68;
+  --danger: #f87171;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-primary: var(--primary);
+  --color-primary-dim: var(--primary-dim);
+  --color-wave-blue: var(--wave-blue);
+  --color-wave-blue-dim: var(--wave-blue-dim);
+  --color-danger: var(--danger);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
+  --font-mono: var(--font-jetbrains-mono);
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--background);
+}
+
+html {
+  scrollbar-color: var(--border) var(--background);
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--wave-blue-dim);
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.glow-text {
+  text-shadow: 0 0 24px rgba(76, 211, 245, 0.35);
+}
+
+.grid-fade-mask {
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, #000 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, #000 40%, transparent 100%);
+}
+
+/* Vercel-style blueprint grid: felt before seen — keep line opacity subliminal */
+.blueprint-grid {
+  background-image:
+    linear-gradient(to right, rgba(76, 211, 245, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(76, 211, 245, 0.05) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 90%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 0%, #000 30%, transparent 90%);
+}
+
+@keyframes wave-drift {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-360px);
+  }
+}
+
+.animate-wave-drift {
+  animation: wave-drift 18s linear infinite;
+}
+
+.animate-wave-drift-slow {
+  animation: wave-drift 26s linear infinite reverse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-wave-drift,
+  .animate-wave-drift-slow {
+    animation: none;
+  }
+}

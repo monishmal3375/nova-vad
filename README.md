@@ -6,10 +6,11 @@ NOVA-VAD is a lightweight, explainable Voice Activity Detector for noisy real-wo
 
 It is built for people working on ASR, diarization, call transcription, edge audio, robotics, and realtime voice agents who need to decide when speech is actually present before sending audio downstream.
 
-On the current held-out noisy-audio benchmark, NOVA-VAD reports **94.0% accuracy / 94.0 F1** while staying lightweight and explainable.
+On a fair, apples-to-apples benchmark — every model scored on the identical 1,538-file held-out set — NOVA-VAD reports **99.80% accuracy / 99.68 F1**, beating Silero VAD (95.19%), the strongest baseline tested, by **+4.61 points**.
 
 **Links**
 
+- Website: [novavad.dev](website/) *(run locally for now — see [website/README](website/README.md))*
 - Hugging Face: https://huggingface.co/monishmal0204/nova-vad
 - X: https://x.com/Nova_vad
 - Roadmap: [ROADMAP.md](ROADMAP.md)
@@ -19,37 +20,42 @@ On the current held-out noisy-audio benchmark, NOVA-VAD reports **94.0% accuracy
 
 ## 🏆 Benchmark Results
 
-Tested on 100 held-out files sampled from all 10 UrbanSound8K noise categories — air
+Tested on **1,538 held-out files** across all 10 UrbanSound8K noise categories — air
 conditioner, car horn, children playing, dog bark, drilling, engine idling, gun shot,
-jackhammer, siren, and street music — stratified so no single category dominates the
-test set (previously this benchmark only covered 5 categories: traffic, sirens,
-jackhammers, AC units, and construction noise).
+jackhammer, siren, and street music — plus Google Speech Commands for speech. The
+dataset was expanded 3.3x (from an original 1,800 files to 5,990) using the same two
+already-licensed sources, and the train/test split is grouped so that no UrbanSound8K
+source recording or Speech Commands speaker ever appears on both sides (see
+"Dataset integrity" below for why that matters and how it was checked).
 
 The benchmark is intentionally scoped: these numbers describe this repo's noisy-audio test setup, not a universal claim across every speech domain.
 
 | Model | Accuracy | Precision | Recall | F1 | Mean Latency | Model Size | Lightweight | Explainable |
 |---|---|---|---|---|---|---|---|---|
-| WebRTC VAD | 44.0% | 46.25% | 74.0% | 56.92% | 0.90ms | N/A | ✅ | ❌ |
-| Energy Threshold (naive) | 52.0% | 51.09% | 94.0% | 66.20% | 0.65ms | 0B | ✅ | ⚠️ trivial |
-| TEN-VAD | 83.0% | 83.67% | 82.0% | 82.83% | 18.63ms | N/A | ✅ | ❌ |
-| SpeechBrain VAD | 89.0% | 91.49% | 86.0% | 88.66% | 58.92ms | N/A | ❌ | ❌ |
-| Pyannote VAD | 92.0% | 90.38% | 94.0% | 92.16% | 61.33ms | N/A | ❌ | ❌ |
-| Silero VAD | 96.0% | 100.0% | 92.0% | 95.83% | 9.16ms | N/A | ❌ | ❌ |
-| **NOVA-VAD** | **94.0%** | **94.0%** | **94.0%** | **94.0%** | **66.12ms** | **895.4KB** | **✅** | **✅** |
+| WebRTC VAD | 36.74% | 28.90% | 71.79% | 41.21% | 1.41ms | N/A | ✅ | ❌ |
+| Energy Threshold (naive) | 36.22% | 31.42% | 90.11% | 46.60% | 0.84ms | 0B | ✅ | ⚠️ trivial |
+| TEN-VAD | 80.43% | 65.99% | 75.58% | 70.46% | 24.88ms | N/A | ✅ | ❌ |
+| SpeechBrain VAD | 93.37% | 88.61% | 90.11% | 89.35% | 64.56ms | N/A | ❌ | ❌ |
+| Pyannote VAD | 90.57% | 78.25% | 96.21% | 86.31% | 65.47ms | N/A | ❌ | ❌ |
+| Silero VAD | 95.19% | 91.34% | 93.26% | 92.29% | 11.07ms | N/A | ❌ | ❌ |
+| **NOVA-VAD** | **99.80%** | **99.58%** | **99.79%** | **99.68%** | **25.84ms** | **1.8MB** | **✅** | **✅** |
 
 Picovoice Cobra is wired into the benchmark script but skipped by default — it requires a
 commercial AccessKey. Set `PICOVOICE_ACCESS_KEY` (and `pip install pvcobra`) to include it.
 
 Note: the full benchmark environment installs heavier baseline libraries so the repo can
 compare against them. The NOVA-VAD classifier itself is a feature-based scikit-learn
-ensemble. Every run of `python3 -m src.benchmark` saves this full table, per-category
+ensemble. Every run of `python3 -m src.fair_comparison` saves this full table, per-category
 accuracy, and false positive/negative file lists to `results/` — see
 [Run Full Benchmark](#run-full-benchmark) below.
 
-**Note on Silero:** on this run Silero VAD (96.0%) edges out NOVA-VAD (94.0%) by 2
-points. We're leaving that result as-is rather than tuning against it — see
-"Benchmark methodology fix" below for why we care more about the test set being honest
-than about NOVA-VAD always winning the table.
+**NOVA-VAD leads Silero by +4.61 points** on this larger, leakage-checked dataset. That
+wasn't true on an earlier, smaller pass at this benchmark — Silero briefly edged out
+NOVA-VAD by 2 points on a 100-file test set (see "Benchmark methodology fix" below). We
+left that result public rather than hiding it, then closed the gap honestly: fixed a
+duration confound in the training data, added literature-backed features, cut inference
+latency, expanded the dataset 3.3x, and checked for (and ruled out) train/test leakage
+before trusting the improved number. Every step is in the commit history.
 
 ### ⚠️ Benchmark methodology fix (2026-07-03)
 
@@ -95,6 +101,33 @@ expected, since WebRTC's frame classifier was previously also being fed
 artificially-quiet noise and normal-volume speech, an unrealistic signal regime that
 doesn't reflect how WebRTC behaves on real audio.
 
+### 🔍 Dataset integrity: duration confound and train/test leakage checks
+
+Two more issues were found and fixed after the methodology fix above, before trusting
+the current 99.80% number:
+
+**Duration confound.** Speech clips (Google Speech Commands, ~1 second) were
+systematically much shorter than noise clips (UrbanSound8K, ~3.5-4 seconds). A
+classifier trained on clip length alone gets ~99% accuracy separating the two classes
+— meaning part of every accuracy number this repo has ever reported, including the
+original 94.0%, could have partly been the model learning "which dataset did this come
+from" instead of real speech-vs-noise acoustics. Fixed by standardizing every clip to a
+fixed 1-second window before feature extraction, matching how `src/stream.py` actually
+processes real audio.
+
+**Train/test leakage.** UrbanSound8K clips are 4-second slices cut from longer original
+field recordings — the dataset's own creators warn that slices from the same source
+recording can be highly correlated, which is why they publish official folds grouped by
+source recording (`fsID`) rather than by individual clip. The same class of risk exists
+for Speech Commands (multiple utterances from the same speaker). This repo's pipeline
+didn't track either originally. Fixed by re-matching every existing audio file against
+its source archive via content hash (no re-downloading), recovering 906 distinct
+UrbanSound8K source recordings and 974 distinct speakers, and reworking the held-out
+split so a whole source-recording or speaker group is assigned to train or test as a
+unit — never split across both. Checking this **barely moved the accuracy** (99.87% →
+99.80%), confirming the earlier number wasn't meaningfully inflated by leakage, but it's
+a real methodological gap that's now closed rather than assumed away.
+
 ---
 
 ## 🔑 What Makes NOVA-VAD Different
@@ -122,16 +155,20 @@ If you try NOVA-VAD on your own noisy dataset, please open an issue with the res
 ---
 
 ## 🧠 How It Works
-Raw Audio → Denoiser → 150+ Features → Ensemble Classifier → SPEECH / NO SPEECH + Explanation
+Raw Audio (standardized to a 1s window) → 150+ Features → Ensemble Classifier → SPEECH / NO SPEECH + Explanation
 ### 150+ Features Extracted Per File
 - MFCCs + deltas (78 features) — spectral shape and change over time
 - Zero Crossing Rate — speech is more consistent than noise
 - RMS Energy pattern — speech rises and falls rhythmically
 - Spectral Flux — speech transitions smoothly, noise changes randomly
 - Harmonic/Percussive ratio — human voice is mostly harmonic
-- Tempo/rhythm — speech has syllable rhythm noise does not
 - Mel Spectrogram statistics — energy distribution across frequency bands
 - Silence ratio — proportion of frames below energy threshold
+- Pitch/voicing (YIN + autocorrelation) — human F0 range and voiced-frame fraction
+- Spectral entropy — voiced speech concentrates energy in formants; noise is diffuse
+- Harmonic peak prominence — how far harmonic peaks stand above the local noise floor
+- Spectral contrast & flatness — tonal vs. noise-like spectral shape
+- Amplitude envelope shape — speech's syllable-rate modulation vs. sustained tones
 
 ### Ensemble Model
 Random Forest + Gradient Boosting voting together.
@@ -153,11 +190,11 @@ python3 download_data.py
 python3 -m src.pipeline
 ```
 
-The first full run downloads data, denoises audio, trains the ensemble, and saves local model files into `models/`.
+The first full run downloads data, trains the ensemble, and saves local model files into `models/`.
 
 ### Explain a Prediction
 ```bash
-python3 -m src.explainer data/clean_speech/speech_001.wav
+python3 -m src.explainer data/speech/speech_001.wav
 ```
 
 ### Try Your Own Audio
@@ -171,13 +208,17 @@ If NOVA-VAD gets your clip wrong, open a noisy-audio issue with the expected lab
 
 ### Run Full Benchmark
 ```bash
-python3 -m src.benchmark
+python3 -m src.fair_comparison
 ```
 
-Each run saves reproducible artifacts to `results/`:
-- `results/benchmark_latest.json` — full metrics (accuracy/precision/recall/F1, mean + p95 latency, model size on disk) for every model compared, plus false positive/negative filenames
-- `results/benchmark_<timestamp>.json` — timestamped copy of the same
-- `results/false_positives_negatives.txt` — plain-text list of which NOVA-VAD predictions were wrong and what the model predicted vs. the true label
+This reconstructs the exact same leakage-checked, source/speaker-grouped held-out split
+used for the numbers in this README (`seed=42`) and scores every model — NOVA-VAD and
+every baseline — on identical audio. Each run saves reproducible artifacts to `results/`:
+- `results/fair_comparison_final.json` — full metrics (accuracy/precision/recall/F1, mean + p95 latency, model size on disk) for every model compared
+- `results/fair_comparison_false_positives_negatives.txt` — plain-text list of which NOVA-VAD predictions were wrong and what the model predicted vs. the true label
+
+`python3 -m src.benchmark` still exists as a lighter-weight, smaller-sample comparison
+if you want a quicker sanity check without the full dataset.
 
 ### Realtime Streaming
 ```bash
@@ -229,19 +270,15 @@ Mel mean               ( 3.50%) → MODERATE energy — normal speech level
 ## 📁 Project Structure
 nova-vad/
 
+├── website/             # marketing site (Next.js) — see website/README.md
+
 ├── data/
 
-│   ├── speech/          # raw speech files
+│   ├── speech/          # raw speech files (Google Speech Commands)
 
-│   ├── noise/           # raw noise files
-
-│   ├── clean_speech/    # denoised speech
-
-│   └── clean_noise/     # denoised noise
+│   └── noise/           # raw noise files (UrbanSound8K)
 
 ├── src/
-
-│   ├── denoiser.py      # noise reduction pipeline
 
 │   ├── vad.py           # WebRTC VAD baseline
 
@@ -249,13 +286,25 @@ nova-vad/
 
 │   ├── explainer.py     # explainability layer
 
-│   ├── benchmark.py     # head-to-head comparison
+│   ├── experiment.py    # rigorous train/tune/test methodology, source/speaker-grouped split
+
+│   ├── fair_comparison.py # apples-to-apples comparison vs every baseline
+
+│   ├── benchmark.py     # lighter-weight head-to-head comparison
 
 │   └── pipeline.py      # end-to-end runner
 
 ├── models/              # saved trained models
 
-├── download_data.py     # automated dataset downloader
+├── demo_assets/         # real audio clips + real explainer output for the website demo
+
+├── download_data.py     # speech dataset downloader
+
+├── download_noise.py    # noise dataset downloader
+
+├── backfill_fsid.py     # recovers UrbanSound8K source-recording IDs for leakage-safe splitting
+
+├── backfill_speaker_id.py # recovers Speech Commands speaker IDs for leakage-safe splitting
 
 └── requirements.txt
 ---
@@ -264,7 +313,7 @@ nova-vad/
 
 **Existing VADs fail in three ways:**
 
-1. They break in noisy environments — WebRTC gets 44% on this repo's real-world noise benchmark
+1. They break in noisy environments — WebRTC gets 36.74% on this repo's real-world noise benchmark
 2. They are black boxes — no explanation of why a decision was made
 3. They are too heavy for edge devices — Silero needs PyTorch (200MB+)
 
@@ -272,9 +321,24 @@ NOVA-VAD is designed to push on all three at once: noisy-audio performance, ligh
 
 ---
 
+## 🌐 Website
+
+A marketing/demo site lives in [`website/`](website/) — dark, animated, and includes a
+"hear it work" section where you can play real audio clips and see NOVA-VAD's actual
+precomputed predictions (confidence + feature drivers), not a live in-browser guess.
+
+```bash
+cd website
+npm install
+npm run dev
+```
+
+Not yet deployed to a public URL — run it locally for now.
+
+---
+
 ## 🛣️ Roadmap
 
-- [x] Denoiser pipeline
 - [x] WebRTC VAD baseline
 - [x] 150+ feature MFCC classifier
 - [x] Ensemble model (RF + GBT)
@@ -282,7 +346,13 @@ NOVA-VAD is designed to push on all three at once: noisy-audio performance, ligh
 - [x] Benchmark vs Silero, Pyannote, WebRTC, SpeechBrain, TEN-VAD
 - [x] Harden real-time streaming audio support (chunk-level hysteresis + mic device selection)
 - [x] Expand noisy-audio benchmark to all 10 UrbanSound8K categories + latency/model-size tracking + FP/FN artifacts
+- [x] Fix duration confound in training data (standardize to 1s window)
+- [x] Expand dataset 3.3x (1,800 → 5,990 files) using the same licensed sources
+- [x] Check and fix train/test leakage via source-recording/speaker grouping
+- [x] Cut inference latency 62.8ms → ~25ms (shared spectrograms, validated feature approximations, cached filterbanks)
+- [x] Marketing/demo website with a real-audio "hear it work" demo
 - [ ] pip install nova-vad packaging
+- [ ] Deploy website to a public URL
 - [ ] Research paper
 
 See [ROADMAP.md](ROADMAP.md) for contributor-friendly tasks.

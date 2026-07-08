@@ -3,30 +3,40 @@
   "cv_summary": {
     "label": "final-cv",
     "n_splits": 5,
-    "acc_mean": 99.86,
-    "acc_std": 0.12,
-    "f1_mean": 99.86,
-    "f1_std": 0.12,
-    "precision_mean": 99.78,
-    "recall_mean": 99.94,
+    "acc_mean": 99.9,
+    "acc_std": 0.09,
+    "f1_mean": 99.84,
+    "f1_std": 0.14,
+    "precision_mean": 99.84,
+    "recall_mean": 99.84,
     "fold_accuracies": [
-      99.76,
-      99.92,
-      99.68,
+      99.79,
+      99.79,
       100.0,
-      99.92
+      99.9,
+      100.0
     ]
   },
   "held_out_test_metrics": {
-    "accuracy": 99.91,
-    "precision": 99.81,
-    "recall": 100.0,
-    "f1": 99.91
+    "accuracy": 99.79,
+    "precision": 99.43,
+    "recall": 99.91,
+    "f1": 99.67
   },
-  "n_test_files": 2119,
-  "n_trainval_files": 6188,
-  "mean_latency_ms": 13.35,
-  "model_size_bytes": 2299264,
-  "rf_params": null,
-  "gbt_params": null
+  "n_test_files": 3295,
+  "n_trainval_files": 9656,
+  "mean_latency_ms": 20.92,
+  "model_size_bytes": 1666608,
+  "rf_params": {
+    "n_estimators": 200,
+    "max_depth": 6,
+    "min_samples_leaf": 1,
+    "max_features": "log2"
+  },
+  "gbt_params": {
+    "n_estimators": 100,
+    "learning_rate": 0.2,
+    "max_depth": 2,
+    "subsample": 0.8
+  }
 }

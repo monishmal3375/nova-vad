@@ -17,6 +17,67 @@ from sklearn.preprocessing import StandardScaler
 
 RESULTS_DIR = "results"
 
+# ── Uniform latency warm-up ─────────────────────────────────────────────────
+# Applied identically to EVERY model in this file (NOVA-VAD, WebRTC, Energy
+# Threshold, Silero, Pyannote, SpeechBrain, TEN-VAD) -- no model gets special
+# treatment. The first WARMUP_FILES predictions for each model (library
+# import already happened at function-call time above the loop; this
+# specifically covers first-call effects like lazy weight loading, JIT/graph
+# tracing, disk-cache population, and this repo's own lru_cache'd librosa
+# filterbank construction) are run and their predictions still count toward
+# accuracy/precision/recall/F1, but their time is NOT recorded into
+# latency_ms. Only after the warm-up does per-file timing begin. This fixes
+# an asymmetry from an earlier pass at this benchmark, where NOVA-VAD alone
+# was re-measured with a warm-up and the other six baselines were not --
+# that was not a fair comparison even though it was disclosed. Every model
+# now gets the exact same treatment.
+WARMUP_FILES = 5
+
+
+def _run_with_uniform_warmup(labeled_paths, predict_fn, extra_fields_fn=None,
+                              warmup_files=WARMUP_FILES):
+    """
+    Shared timing helper used identically by every model's run_* function
+    below, so the warm-up treatment can't drift out of sync between models.
+
+    labeled_paths: list of (true_label, path, file_name) tuples, in the
+      exact order the model should process them (test_speech then
+      test_noise, matching every run_* function's existing order).
+    predict_fn(path) -> prediction (0/1), or (prediction, extra_dict) if
+      extra_fields_fn is given (used for WebRTC's speech_ratio-based
+      "confidence" field).
+    extra_fields_fn(raw_predict_result) -> dict of extra per-file fields to
+      merge into the result dict (e.g. {"confidence": ...}). Optional.
+
+    Returns (results, elapsed) where results is a list of per-file dicts
+    with "true"/"pred"/"file" always present, and "latency_ms" present only
+    for files after the first `warmup_files` -- exactly like every other
+    model. elapsed covers the whole call (warm-up + timed), matching what
+    the previous single-loop versions measured for "time".
+    """
+    results = []
+    start = time.time()
+
+    for i, (true_label, path, fname) in enumerate(labeled_paths):
+        timed = i >= warmup_files
+        t0 = time.time() if timed else None
+        raw = predict_fn(path)
+        latency_ms = (time.time() - t0) * 1000 if timed else None
+
+        if extra_fields_fn is not None:
+            pred, extra = extra_fields_fn(raw)
+        else:
+            pred, extra = raw, {}
+
+        entry = {"true": true_label, "pred": pred, "file": fname, **extra}
+        if latency_ms is not None:
+            entry["latency_ms"] = round(latency_ms, 2)
+        results.append(entry)
+
+    elapsed = time.time() - start
+    return results, elapsed
+
+
 # ── Train/Test Split ───────────────────────────────────────────────────────
 def split_dataset(speech_dir: str, noise_dir: str, test_ratio: float = 0.2):
     """
@@ -102,42 +163,25 @@ def train_nova_vad(train_speech: list, train_noise: list,
 def run_nova_vad(test_speech: list, test_noise: list,
                  speech_dir: str, noise_dir: str,
                  rf, gbt, scaler) -> dict:
-    results = []
-    start   = time.time()
+    def predict(path):
+        features = extract_features(path)
+        X_scaled = scaler.transform([features])
+        rf_prob = rf.predict_proba(X_scaled)[0][1]
+        gbt_prob = gbt.predict_proba(X_scaled)[0][1]
+        avg_prob = (rf_prob + gbt_prob) / 2
+        pred = 1 if avg_prob > 0.5 else 0
+        return pred, avg_prob
 
-    for f in test_speech:
-        path        = os.path.join(speech_dir, f)
-        t0          = time.time()
-        features    = extract_features(path)
-        X_scaled    = scaler.transform([features])
-        rf_prob     = rf.predict_proba(X_scaled)[0][1]
-        gbt_prob    = gbt.predict_proba(X_scaled)[0][1]
-        avg_prob    = (rf_prob + gbt_prob) / 2
-        pred        = 1 if avg_prob > 0.5 else 0
-        latency_ms  = (time.time() - t0) * 1000
-        results.append({
-            "true": 1, "pred": pred, "file": f,
-            "confidence": round(float(avg_prob if pred == 1 else 1 - avg_prob) * 100, 2),
-            "latency_ms": round(latency_ms, 2)
-        })
+    def extra_fields(raw):
+        pred, avg_prob = raw
+        return pred, {"confidence": round(float(avg_prob if pred == 1 else 1 - avg_prob) * 100, 2)}
 
-    for f in test_noise:
-        path        = os.path.join(noise_dir, f)
-        t0          = time.time()
-        features    = extract_features(path)
-        X_scaled    = scaler.transform([features])
-        rf_prob     = rf.predict_proba(X_scaled)[0][1]
-        gbt_prob    = gbt.predict_proba(X_scaled)[0][1]
-        avg_prob    = (rf_prob + gbt_prob) / 2
-        pred        = 1 if avg_prob > 0.5 else 0
-        latency_ms  = (time.time() - t0) * 1000
-        results.append({
-            "true": 0, "pred": pred, "file": f,
-            "confidence": round(float(avg_prob if pred == 1 else 1 - avg_prob) * 100, 2),
-            "latency_ms": round(latency_ms, 2)
-        })
+    labeled_paths = (
+        [(1, os.path.join(speech_dir, f), f) for f in test_speech] +
+        [(0, os.path.join(noise_dir, f), f) for f in test_noise]
+    )
+    results, elapsed = _run_with_uniform_warmup(labeled_paths, predict, extra_fields)
 
-    elapsed    = time.time() - start
     model_size = model_size_bytes([
         "models/nova_vad_rf.pkl", "models/nova_vad_gbt.pkl", "models/nova_vad_scaler.pkl"
     ])
@@ -147,28 +191,18 @@ def run_nova_vad(test_speech: list, test_noise: list,
 # ── Run WebRTC on test set ─────────────────────────────────────────────────
 def run_webrtc(test_speech: list, test_noise: list,
                speech_dir: str, noise_dir: str) -> dict:
-    results = []
-    start   = time.time()
+    def predict(path):
+        return detect_speech(path)
 
-    for f in test_speech:
-        path       = os.path.join(speech_dir, f)
-        t0         = time.time()
-        r          = detect_speech(path)
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 1, "pred": r["prediction"], "file": f,
-                         "confidence": round(r["speech_ratio"] * 100, 2),
-                         "latency_ms": round(latency_ms, 2)})
+    def extra_fields(r):
+        return r["prediction"], {"confidence": round(r["speech_ratio"] * 100, 2)}
 
-    for f in test_noise:
-        path       = os.path.join(noise_dir, f)
-        t0         = time.time()
-        r          = detect_speech(path)
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 0, "pred": r["prediction"], "file": f,
-                         "confidence": round(r["speech_ratio"] * 100, 2),
-                         "latency_ms": round(latency_ms, 2)})
+    labeled_paths = (
+        [(1, os.path.join(speech_dir, f), f) for f in test_speech] +
+        [(0, os.path.join(noise_dir, f), f) for f in test_noise]
+    )
+    results, elapsed = _run_with_uniform_warmup(labeled_paths, predict, extra_fields)
 
-    elapsed = time.time() - start
     # webrtcvad is a thin C-extension wheel — no local model file to size
     return compute_metrics(results, elapsed, "WebRTC VAD", model_size_bytes_val=None)
 
@@ -181,9 +215,7 @@ def run_silero(test_speech: list, test_noise: list,
     import torch
     import librosa
 
-    model   = load_silero_vad()
-    results = []
-    start   = time.time()
+    model = load_silero_vad()
 
     def predict(path):
         try:
@@ -201,19 +233,12 @@ def run_silero(test_speech: list, test_noise: list,
             print(f"    Error on {path}: {e}")
             return 0
 
-    for f in test_speech:
-        t0         = time.time()
-        pred       = predict(os.path.join(speech_dir, f))
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 1, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
+    labeled_paths = (
+        [(1, os.path.join(speech_dir, f), f) for f in test_speech] +
+        [(0, os.path.join(noise_dir, f), f) for f in test_noise]
+    )
+    results, elapsed = _run_with_uniform_warmup(labeled_paths, predict)
 
-    for f in test_noise:
-        t0         = time.time()
-        pred       = predict(os.path.join(noise_dir, f))
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 0, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    elapsed = time.time() - start
     return compute_metrics(results, elapsed, "Silero VAD", model_size_bytes_val=None)
 
 # ── Pyannote VAD ───────────────────────────────────────────────────────────
@@ -230,9 +255,6 @@ def run_pyannote(test_speech: list, test_noise: list,
     model    = Model.from_pretrained("pyannote/segmentation-3.0", use_auth_token=token)
     pipeline = VoiceActivityDetection(segmentation=model)
     pipeline.instantiate({"min_duration_on": 0.0, "min_duration_off": 0.0})
-
-    results = []
-    start   = time.time()
 
     def predict(path):
         try:
@@ -252,19 +274,12 @@ def run_pyannote(test_speech: list, test_noise: list,
             print(f"    Error on {path}: {e}")
             return 0
 
-    for f in test_speech:
-        t0         = time.time()
-        pred       = predict(os.path.join(speech_dir, f))
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 1, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
+    labeled_paths = (
+        [(1, os.path.join(speech_dir, f), f) for f in test_speech] +
+        [(0, os.path.join(noise_dir, f), f) for f in test_noise]
+    )
+    results, elapsed = _run_with_uniform_warmup(labeled_paths, predict)
 
-    for f in test_noise:
-        t0         = time.time()
-        pred       = predict(os.path.join(noise_dir, f))
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 0, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    elapsed = time.time() - start
     return compute_metrics(results, elapsed, "Pyannote VAD", model_size_bytes_val=None)
 
 # ── SpeechBrain VAD ────────────────────────────────────────────────────────
@@ -281,9 +296,6 @@ def run_speechbrain(test_speech: list, test_noise: list,
         source="speechbrain/vad-crdnn-libriparty",
         savedir="models/speechbrain_vad"
     )
-
-    results = []
-    start   = time.time()
 
     def predict(path):
         try:
@@ -313,19 +325,12 @@ def run_speechbrain(test_speech: list, test_noise: list,
             print(f"    Error on {path}: {e}")
             return 0
 
-    for f in test_speech:
-        t0         = time.time()
-        pred       = predict(os.path.join(speech_dir, f))
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 1, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
+    labeled_paths = (
+        [(1, os.path.join(speech_dir, f), f) for f in test_speech] +
+        [(0, os.path.join(noise_dir, f), f) for f in test_noise]
+    )
+    results, elapsed = _run_with_uniform_warmup(labeled_paths, predict)
 
-    for f in test_noise:
-        t0         = time.time()
-        pred       = predict(os.path.join(noise_dir, f))
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 0, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    elapsed = time.time() - start
     return compute_metrics(results, elapsed, "SpeechBrain VAD", model_size_bytes_val=None)
 
 
@@ -372,24 +377,12 @@ def run_ten_vad(test_speech: list, test_noise: list,
             print(f"    Error on {path}: {e}")
             return 0
 
-    results = []
-    start   = time.time()
+    labeled_paths = (
+        [(1, os.path.join(speech_dir, f), f) for f in test_speech] +
+        [(0, os.path.join(noise_dir, f), f) for f in test_noise]
+    )
+    results, elapsed = _run_with_uniform_warmup(labeled_paths, predict)
 
-    for f in test_speech:
-        path       = os.path.join(speech_dir, f)
-        t0         = time.time()
-        pred       = predict(path)
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 1, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    for f in test_noise:
-        path       = os.path.join(noise_dir, f)
-        t0         = time.time()
-        pred       = predict(path)
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 0, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    elapsed = time.time() - start
     # TEN-VAD ships a tiny per-platform native library (a few hundred KB) —
     # no local model file path to size the way NOVA-VAD's .pkl files are sized
     return compute_metrics(results, elapsed, "TEN-VAD", model_size_bytes_val=None)
@@ -445,24 +438,12 @@ def run_picovoice_cobra(test_speech: list, test_noise: list,
             print(f"    Error on {path}: {e}")
             return 0
 
-    results = []
-    start   = time.time()
+    labeled_paths = (
+        [(1, os.path.join(speech_dir, f), f) for f in test_speech] +
+        [(0, os.path.join(noise_dir, f), f) for f in test_noise]
+    )
+    results, elapsed = _run_with_uniform_warmup(labeled_paths, predict)
 
-    for f in test_speech:
-        path       = os.path.join(speech_dir, f)
-        t0         = time.time()
-        pred       = predict(path)
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 1, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    for f in test_noise:
-        path       = os.path.join(noise_dir, f)
-        t0         = time.time()
-        pred       = predict(path)
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 0, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    elapsed = time.time() - start
     cobra.delete()
     return compute_metrics(results, elapsed, "Picovoice Cobra", model_size_bytes_val=None)
 
@@ -489,24 +470,12 @@ def run_energy_threshold(test_speech: list, test_noise: list,
         # fixed empirical threshold — deliberately simple, not tuned per-dataset
         return 1 if rms > 0.02 else 0
 
-    results = []
-    start   = time.time()
+    labeled_paths = (
+        [(1, os.path.join(speech_dir, f), f) for f in test_speech] +
+        [(0, os.path.join(noise_dir, f), f) for f in test_noise]
+    )
+    results, elapsed = _run_with_uniform_warmup(labeled_paths, predict)
 
-    for f in test_speech:
-        path       = os.path.join(speech_dir, f)
-        t0         = time.time()
-        pred       = predict(path)
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 1, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    for f in test_noise:
-        path       = os.path.join(noise_dir, f)
-        t0         = time.time()
-        pred       = predict(path)
-        latency_ms = (time.time() - t0) * 1000
-        results.append({"true": 0, "pred": pred, "file": f, "latency_ms": round(latency_ms, 2)})
-
-    elapsed = time.time() - start
     return compute_metrics(results, elapsed, "Energy Threshold", model_size_bytes_val=0)
 
 

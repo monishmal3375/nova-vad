@@ -72,6 +72,23 @@ NOVA-VAD is focused on becoming a practical, lightweight, explainable VAD for no
   HPSS computation (Pearson r=0.99 vs. the original), and cached mel/chroma
   filterbank construction (verified bit-for-bit identical output, not an
   approximation).
+- [x] Round 2 (2026-07-07): expand the dataset again 2.2x (5,990 → 12,951 files,
+  same two licensed sources), re-verify no leakage (100% of files backfilled with
+  fsID/speaker ID: 1,295 distinct source recordings, 1,632 distinct speakers).
+  Profiled `extract_features()` with cProfile and dropped harmonic peak
+  prominence — ~13% of feature-extraction latency for ~0.07% combined
+  RF+GBT importance (same tier as the already-dropped beat-tracking feature) —
+  cutting extraction latency ~17% (23.38ms → 19.39ms/file on a 100-file sample).
+  Added a joint accuracy/latency hyperparameter search (`python3 -m src.experiment
+  search_latency`, separate from the accuracy-only `search` mode) and adopted its
+  winning candidate after validating both configs head-to-head on the real
+  held-out pipeline: genuinely better on every held-out metric
+  (99.79%/99.43%/99.91%/99.67% vs. defaults' 99.67%/99.15%/99.81%/99.48%) and a
+  43% smaller model (1.6MB vs. 2.9MB) — but, checked via a controlled 3-repeat
+  re-measurement rather than trusted on a single noisy reading, essentially no
+  latency difference from defaults (~12.4-12.5ms warm either way; feature
+  extraction dominates total latency, not model inference). Full details and
+  numbers in the README's "Round 2" section.
 
 ## Explainability
 

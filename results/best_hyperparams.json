@@ -1,0 +1,14 @@
+{
+  "rf": {
+    "n_estimators": 200,
+    "max_depth": 6,
+    "min_samples_leaf": 1,
+    "max_features": "log2"
+  },
+  "gbt": {
+    "n_estimators": 100,
+    "learning_rate": 0.2,
+    "max_depth": 2,
+    "subsample": 0.8
+  }
+}

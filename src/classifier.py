@@ -34,6 +34,22 @@ def _spectral_entropy_stats(power_spec: np.ndarray) -> tuple:
     return float(np.mean(entropy)), float(np.std(entropy))
 
 
+# NOTE (round-2 latency work, 2026-07-07): _harmonic_peak_prominence_stats()
+# used to be called here and contributed 2 features ("Harmonic peak
+# prominence mean/std"). Profiling (cProfile over 100 real files, mix of
+# speech/noise) showed it cost ~3.13ms/file -- ~13% of total
+# feature-extraction latency, the single largest per-feature-block cost
+# after HPSS -- driven by scipy.signal.find_peaks() running in an
+# unavoidable per-frame Python loop (scipy has no vectorized find_peaks).
+# `python3 -m src.experiment importances` ranked its two features #62/119
+# (0.0487%) and #96/119 (0.0214%) by combined RF+GBT importance -- combined
+# ~0.07%, in the same "essentially noise to the model" tier as
+# tempo/beat-tracking (0.02% importance, rank ~106/118), which was already
+# dropped for exactly this expensive-and-unimportant reason. Dropped here on
+# the same precedent; validated via full retrain + held-out re-score before
+# adopting (see the commit that removed the call site below), not just
+# feature-importance analysis in isolation. The function is kept (unused) in
+# case future work wants to reintroduce a cheaper/vectorized version.
 def _harmonic_peak_prominence_stats(power_spec: np.ndarray) -> tuple:
     """
     Per-frame mean peak prominence in the dB spectrum — how far harmonic
@@ -337,12 +353,15 @@ def _extract_features_core(audio: np.ndarray, sr: int) -> np.ndarray:
     entropy_mean, entropy_std = _spectral_entropy_stats(power_spec)
     features.append([entropy_mean, entropy_std])
 
-    # ── 16. Harmonic Peak Prominence ────────────────────────────────────────
-    # how far harmonic peaks stand above the local spectral floor —
-    # survives additive background noise better than a global harmonic/
-    # percussive energy split (feature #10 above).
-    peak_prom_mean, peak_prom_std = _harmonic_peak_prominence_stats(power_spec)
-    features.append([peak_prom_mean, peak_prom_std])
+    # ── 16. Harmonic Peak Prominence — DROPPED (round-2 latency work) ──────
+    # Was: ~3.13ms/file (~13% of total feature-extraction latency), 2
+    # features ranking #62/119 (0.0487%) and #96/119 (0.0214%) combined
+    # RF+GBT importance -- essentially noise to the model, same tier as
+    # tempo/beat-tracking (0.02% importance) which was already dropped for
+    # the same expensive-and-unimportant reason. See
+    # _harmonic_peak_prominence_stats()'s docstring above for the full
+    # profiling numbers. Validated via full retrain + held-out re-score
+    # before adopting (see commit message).
 
     # ── 17. Amplitude Envelope Modulation Shape ─────────────────────────────
     # General acoustic principle (not tuned to any specific clip): speech is

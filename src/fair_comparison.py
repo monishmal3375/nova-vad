@@ -48,7 +48,7 @@ from src.experiment import load_or_build_features, held_out_split, _extract_feat
 from src.benchmark import (
     run_webrtc, run_silero, run_pyannote, run_speechbrain, run_ten_vad,
     run_energy_threshold, compute_metrics, model_size_bytes, human_size,
-    load_noise_category_manifest, build_category_breakdown,
+    load_noise_category_manifest, build_category_breakdown, WARMUP_FILES,
 )
 
 RESULTS_DIR = "results"
@@ -123,14 +123,28 @@ def run_nova_vad_fair(test_speech, test_noise, data, test_idx):
                          "confidence": round(float(avg_prob if pred == 1 else 1 - avg_prob) * 100, 2)})
 
     # measure real per-file latency (feature extraction from disk + inference)
-    # separately, matching experiment.py's methodology (first 50 test files)
-    for fname in ([test_speech[i] for i in range(min(25, len(test_speech)))] +
-                  [test_noise[i] for i in range(min(25, len(test_noise)))]):
-        path = os.path.join(SPEECH_DIR, fname) if fname in speech_dirset else os.path.join(NOISE_DIR, fname)
-        t0 = time.time()
+    # separately, matching experiment.py's methodology (first 50 test files,
+    # plus WARMUP_FILES un-timed files ahead of them). The warm-up here is
+    # the SAME WARMUP_FILES count and the SAME "predict first, don't time it"
+    # treatment that _run_with_uniform_warmup() applies to every other model
+    # in src/benchmark.py (WebRTC, Energy Threshold, Silero, Pyannote,
+    # SpeechBrain, TEN-VAD) -- no model, including NOVA-VAD, gets a
+    # different warm-up policy than any other.
+    latency_files = ([test_speech[i] for i in range(min(25, len(test_speech)))] +
+                     [test_noise[i] for i in range(min(25, len(test_noise)))])
+
+    def _nova_vad_latency_predict(path):
         feats = _extract_features_windowed(path)
         Xs = scaler.transform([feats])
-        _ = (rf.predict_proba(Xs)[0][1] + gbt.predict_proba(Xs)[0][1]) / 2
+        return (rf.predict_proba(Xs)[0][1] + gbt.predict_proba(Xs)[0][1]) / 2
+
+    for i, fname in enumerate(latency_files):
+        path = os.path.join(SPEECH_DIR, fname) if fname in speech_dirset else os.path.join(NOISE_DIR, fname)
+        if i < WARMUP_FILES:
+            _nova_vad_latency_predict(path)  # warm-up: predict, don't time
+            continue
+        t0 = time.time()
+        _nova_vad_latency_predict(path)
         latencies.append((time.time() - t0) * 1000)
 
     elapsed = time.time() - start

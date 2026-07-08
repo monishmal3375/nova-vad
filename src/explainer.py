@@ -67,8 +67,10 @@ def get_feature_names() -> list:
     # Spectral Entropy (2)
     names += ["Spectral entropy mean", "Spectral entropy std"]
 
-    # Harmonic Peak Prominence (2)
-    names += ["Harmonic peak prominence mean", "Harmonic peak prominence std"]
+    # NOTE: Harmonic Peak Prominence (was 2 features here) was dropped from
+    # extract_features() -- round-2 latency work measured it at ~13% of
+    # total feature-extraction latency for ~0.07% combined importance (see
+    # src/classifier.py's _harmonic_peak_prominence_stats docstring).
 
     # Amplitude Envelope Modulation Shape (2) — distinguishes speech's
     # syllable-rate amplitude modulation from sustained tonal sources

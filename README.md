@@ -32,22 +32,26 @@ The benchmark is intentionally scoped: these numbers describe this repo's noisy-
 
 | Model | Accuracy | Precision | Recall | F1 | Mean Latency | Model Size | Lightweight | Explainable |
 |---|---|---|---|---|---|---|---|---|
-| WebRTC VAD | 36.08% | 28.84% | 67.87% | 40.47% | 1.30ms | N/A | ✅ | ❌ |
-| Energy Threshold (naive) | 39.18% | 33.20% | 88.91% | 48.35% | 0.74ms | 0B | ✅ | ⚠️ trivial |
-| TEN-VAD | 78.66% | 64.38% | 74.69% | 69.15% | 26.80ms | N/A | ✅ | ❌ |
-| SpeechBrain VAD | 93.38% | 89.59% | 89.76% | 89.68% | 60.08ms | N/A | ❌ | ❌ |
-| Pyannote VAD | 89.50% | 76.88% | 96.11% | 85.43% | 62.48ms | N/A | ❌ | ❌ |
-| Silero VAD | 94.87% | 92.76% | 91.09% | 91.92% | 10.66ms | N/A | ❌ | ❌ |
-| **NOVA-VAD** | **99.79%** | **99.43%** | **99.91%** | **99.67%** | **~13.7ms** | **1.6MB** | **✅** | **✅** |
+| WebRTC VAD | 36.08% | 28.84% | 67.87% | 40.47% | 1.32ms | N/A | ✅ | ❌ |
+| Energy Threshold (naive) | 39.18% | 33.20% | 88.91% | 48.35% | 0.95ms | 0B | ✅ | ⚠️ trivial |
+| TEN-VAD | 78.66% | 64.38% | 74.69% | 69.15% | 24.20ms | N/A | ✅ | ❌ |
+| SpeechBrain VAD | 93.38% | 89.59% | 89.76% | 89.68% | 58.04ms | N/A | ❌ | ❌ |
+| Pyannote VAD | 89.50% | 76.88% | 96.11% | 85.43% | 61.20ms | N/A | ❌ | ❌ |
+| Silero VAD | 94.87% | 92.76% | 91.09% | 91.92% | 10.43ms | N/A | ❌ | ❌ |
+| **NOVA-VAD** | **99.79%** | **99.43%** | **99.91%** | **99.67%** | **13.67ms** | **1.6MB** | **✅** | **✅** |
 
-NOVA-VAD's latency is reported as ~13.7ms (mean of 3 warmed-up runs, 12.7-13.0ms median,
-load average 1.8-2.8 throughout) rather than the 22.42ms the fair-comparison script's own
-single-shot measurement recorded — that run's mean was pulled up by a cold-start effect on
-the first couple of files (its own p95 of 18.87ms, *below* its mean, was the tell). Both
-numbers are in `results/`; see "Benchmark methodology fix" precedent below for why this
-repo re-checks latency numbers instead of taking the first reading. Either way, NOVA-VAD is
-faster than every trained baseline except Silero and WebRTC/Energy-Threshold (which are not
-trained classifiers).
+Every model's latency above is measured the same way: a 5-file warm-up (predicted but not
+timed) followed by per-file timing on the remaining held-out files, applied uniformly by
+`src/benchmark.py`'s `_run_with_uniform_warmup()` and `src/fair_comparison.py`'s NOVA-VAD
+latency loop alike — no model gets different treatment than any other. This matters because
+a first pass at this round's re-benchmark re-measured NOVA-VAD's latency with a warm-up
+while leaving every other model on the original un-warmed measurement, which was flagged
+and fixed rather than shipped: NOVA-VAD's un-warmed number (22.42ms) was inflated by one
+cold-start file costing 522.98ms out of a 50-file sample (confirmed by direct
+per-file profiling) — a real effect, but every other model's un-warmed number had the same
+kind of inflation (e.g. Silero's first predict() call cost 77.66ms vs. ~3.45ms
+steady-state, even with its model already loaded beforehand). Applying the identical fix to
+all seven models — not just NOVA-VAD — is what's reflected in the table above.
 
 Picovoice Cobra is wired into the benchmark script but skipped by default — it requires a
 commercial AccessKey. Set `PICOVOICE_ACCESS_KEY` (and `pip install pvcobra`) to include it.
@@ -193,13 +197,15 @@ held-out metric (99.79%/99.43%/99.91%/99.67% vs. defaults' 99.67%/99.15%/99.81%/
 **and** produced a 43% smaller model (1.6MB vs. 2.9MB). Latency: an initial single-shot
 comparison looked like tuned was slower (23.35ms vs. 19.75ms) — investigated rather than
 accepted, per this repo's standing practice around latency noise. A controlled, 3-repeat,
-interleaved re-measurement on identical files showed the first "defaults" reading was a
-19.54ms cold-start outlier; every other reading for both configs converged to ~12.4-12.5ms
-with **no real latency difference between the two configs** — feature extraction (not
-model inference) dominates total latency, and both models are small enough that inference
-cost is sub-millisecond either way. Honest bottom line: the joint search's accuracy/size
-win is real, but it did not reduce inference latency the way "latency-aware" implies — it
-simply didn't cost any latency while shrinking the model. `results/best_hyperparams.json`
+interleaved re-measurement on identical files (a separate ad-hoc script, not the
+`fair_comparison.py` table above, but both configs measured identically to each other
+within that comparison) showed the first "defaults" reading was a 19.54ms cold-start
+outlier; every other reading for both configs converged to ~12.4-12.5ms with **no real
+latency difference between the two configs** — feature extraction (not model inference)
+dominates total latency, and both models are small enough that inference cost is
+sub-millisecond either way. Honest bottom line: the joint search's accuracy/size win is
+real, but it did not reduce inference latency the way "latency-aware" implies — it simply
+didn't cost any latency while shrinking the model. `results/best_hyperparams.json`
 now holds this configuration (previously absent; the old baseline deliberately used
 defaults) and is what `python3 -m src.experiment final` picks up by default.
 
@@ -213,9 +219,10 @@ Full before/after on the identical 3,295-file held-out set:
 Accuracy/precision/F1 are flat to a tenth of a point either way — more data and the
 feature/hyperparameter changes did **not** produce a headline accuracy jump on this
 already-near-ceiling task, and that's reported here as-is rather than dressed up. What
-*did* improve: latency (~25ms era baseline → ~13.7ms warm-measured this round, via the
-feature drop; the hyperparameter search did not add to this) and model size (1.8MB → 1.6MB
-despite the larger training set, from the shallower/simpler tuned ensemble).
+*did* improve: latency (~25.84ms previous-round baseline → 13.67ms this round, measured
+identically for every model — see the benchmark table above — via the feature drop; the
+hyperparameter search did not add to this) and model size (1.8MB → 1.6MB despite the
+larger training set, from the shallower/simpler tuned ensemble).
 
 ---
 

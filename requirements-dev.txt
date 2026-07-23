@@ -1,0 +1,2 @@
+# Development/testing tooling. Install on top of requirements-runtime.txt.
+pytest==8.3.4

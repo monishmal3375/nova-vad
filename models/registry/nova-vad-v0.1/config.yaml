@@ -1,0 +1,66 @@
+# NOVA-VAD v0.1 — frozen baseline
+#
+# This is the exact model that produced the 93.0% accuracy / 92.63% F1
+# result reported in the README, reproduced and re-verified on 2026-07-22.
+# Frozen per the model-first engineering plan (Section 6.1) before any
+# architecture changes, so future work has a stable regression baseline
+# and an honest record of what this specific number means.
+
+model_id: nova-vad-v0.1
+frozen_date: "2026-07-22"
+git_branch: engineering/model-foundation-v1
+
+task:
+  type: whole-file binary classification (speech vs. noise)
+  # NOT a frame-level VAD — see model_card.md for the distinction and why
+  # it matters for any "beats WebRTC/Silero/Pyannote" claim.
+
+architecture:
+  ensemble: [RandomForestClassifier, GradientBoostingClassifier]
+  rf_params:
+    n_estimators: 200
+    max_depth: 10
+    random_state: 42
+  gbt_params:
+    n_estimators: 100
+    learning_rate: 0.1
+    random_state: 42
+  combination: average of rf.predict_proba and gbt.predict_proba, threshold 0.5
+  feature_count: 106  # verified by direct measurement (extract_features() output length,
+    # 2026-07-22). README/plan both say "150+" — that figure does not match the code;
+    # see feature_schema.json in this directory for the full itemized list.
+  scaler: sklearn.preprocessing.StandardScaler
+
+training_data:
+  speech_source: Google Speech Commands v0.02 (250 files, data/speech/ -> denoised to data/clean_speech/)
+  noise_source: MUSAN noise + music subsets (250 files, data/noise/ -> denoised to data/clean_noise/)
+  preprocessing: noisereduce, first 0.5s of each clip used as the noise profile
+  split: seeded 80/20 (random.seed(42)), grouped only by filename — NOT grouped
+    by speaker or source, so cross-dataset shortcut learning has not been ruled out
+
+reported_benchmark:
+  test_set_size: 100  # 50 speech + 50 noise, held out, never trained on
+  accuracy_pct: 93.0
+  precision_pct: 97.78
+  recall_pct: 88.0
+  f1_pct: 92.63
+  reproduced_on: "2026-07-22"
+  reproduction_command: "python3 -m src.benchmark"
+  predictions_file: predictions.csv  # per-file predictions in this directory
+
+environment:
+  python: "3.12.2"
+  numpy: "2.4.6"
+  scipy: "1.18.0"
+  scikit-learn: "1.9.0"
+  librosa: "0.11.0"
+  joblib: "1.5.3"
+  soundfile: "0.14.0"
+  webrtcvad: "2.0.10"
+  noisereduce: "3.0.3"  # __version__ not exposed by the package; pinned via requirements-runtime.txt
+
+artifacts:
+  model_rf: model_rf.pkl
+  model_gbt: model_gbt.pkl
+  scaler: scaler.pkl
+  checksums: checksums.txt

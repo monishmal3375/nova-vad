@@ -8,7 +8,7 @@ from src.classifier import extract_features
 # ── Feature Names ──────────────────────────────────────────────────────────
 def get_feature_names() -> list:
     """
-    Returns human readable names for all 150+ features.
+    Returns human readable names for all 106 features.
     Matches exactly what extract_features() produces.
     """
     names = []

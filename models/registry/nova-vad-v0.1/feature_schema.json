@@ -1,0 +1,430 @@
+{
+  "feature_count": 106,
+  "note": "README/plan say '150+' features; measured length is 106. This file is the source of truth.",
+  "features": [
+    {
+      "index": 0,
+      "name": "MFCC 1 mean"
+    },
+    {
+      "index": 1,
+      "name": "MFCC 2 mean"
+    },
+    {
+      "index": 2,
+      "name": "MFCC 3 mean"
+    },
+    {
+      "index": 3,
+      "name": "MFCC 4 mean"
+    },
+    {
+      "index": 4,
+      "name": "MFCC 5 mean"
+    },
+    {
+      "index": 5,
+      "name": "MFCC 6 mean"
+    },
+    {
+      "index": 6,
+      "name": "MFCC 7 mean"
+    },
+    {
+      "index": 7,
+      "name": "MFCC 8 mean"
+    },
+    {
+      "index": 8,
+      "name": "MFCC 9 mean"
+    },
+    {
+      "index": 9,
+      "name": "MFCC 10 mean"
+    },
+    {
+      "index": 10,
+      "name": "MFCC 11 mean"
+    },
+    {
+      "index": 11,
+      "name": "MFCC 12 mean"
+    },
+    {
+      "index": 12,
+      "name": "MFCC 13 mean"
+    },
+    {
+      "index": 13,
+      "name": "MFCC 1 std"
+    },
+    {
+      "index": 14,
+      "name": "MFCC 2 std"
+    },
+    {
+      "index": 15,
+      "name": "MFCC 3 std"
+    },
+    {
+      "index": 16,
+      "name": "MFCC 4 std"
+    },
+    {
+      "index": 17,
+      "name": "MFCC 5 std"
+    },
+    {
+      "index": 18,
+      "name": "MFCC 6 std"
+    },
+    {
+      "index": 19,
+      "name": "MFCC 7 std"
+    },
+    {
+      "index": 20,
+      "name": "MFCC 8 std"
+    },
+    {
+      "index": 21,
+      "name": "MFCC 9 std"
+    },
+    {
+      "index": 22,
+      "name": "MFCC 10 std"
+    },
+    {
+      "index": 23,
+      "name": "MFCC 11 std"
+    },
+    {
+      "index": 24,
+      "name": "MFCC 12 std"
+    },
+    {
+      "index": 25,
+      "name": "MFCC 13 std"
+    },
+    {
+      "index": 26,
+      "name": "MFCC Delta 1 mean"
+    },
+    {
+      "index": 27,
+      "name": "MFCC Delta 2 mean"
+    },
+    {
+      "index": 28,
+      "name": "MFCC Delta 3 mean"
+    },
+    {
+      "index": 29,
+      "name": "MFCC Delta 4 mean"
+    },
+    {
+      "index": 30,
+      "name": "MFCC Delta 5 mean"
+    },
+    {
+      "index": 31,
+      "name": "MFCC Delta 6 mean"
+    },
+    {
+      "index": 32,
+      "name": "MFCC Delta 7 mean"
+    },
+    {
+      "index": 33,
+      "name": "MFCC Delta 8 mean"
+    },
+    {
+      "index": 34,
+      "name": "MFCC Delta 9 mean"
+    },
+    {
+      "index": 35,
+      "name": "MFCC Delta 10 mean"
+    },
+    {
+      "index": 36,
+      "name": "MFCC Delta 11 mean"
+    },
+    {
+      "index": 37,
+      "name": "MFCC Delta 12 mean"
+    },
+    {
+      "index": 38,
+      "name": "MFCC Delta 13 mean"
+    },
+    {
+      "index": 39,
+      "name": "MFCC Delta 1 std"
+    },
+    {
+      "index": 40,
+      "name": "MFCC Delta 2 std"
+    },
+    {
+      "index": 41,
+      "name": "MFCC Delta 3 std"
+    },
+    {
+      "index": 42,
+      "name": "MFCC Delta 4 std"
+    },
+    {
+      "index": 43,
+      "name": "MFCC Delta 5 std"
+    },
+    {
+      "index": 44,
+      "name": "MFCC Delta 6 std"
+    },
+    {
+      "index": 45,
+      "name": "MFCC Delta 7 std"
+    },
+    {
+      "index": 46,
+      "name": "MFCC Delta 8 std"
+    },
+    {
+      "index": 47,
+      "name": "MFCC Delta 9 std"
+    },
+    {
+      "index": 48,
+      "name": "MFCC Delta 10 std"
+    },
+    {
+      "index": 49,
+      "name": "MFCC Delta 11 std"
+    },
+    {
+      "index": 50,
+      "name": "MFCC Delta 12 std"
+    },
+    {
+      "index": 51,
+      "name": "MFCC Delta 13 std"
+    },
+    {
+      "index": 52,
+      "name": "MFCC Delta2 1 mean"
+    },
+    {
+      "index": 53,
+      "name": "MFCC Delta2 2 mean"
+    },
+    {
+      "index": 54,
+      "name": "MFCC Delta2 3 mean"
+    },
+    {
+      "index": 55,
+      "name": "MFCC Delta2 4 mean"
+    },
+    {
+      "index": 56,
+      "name": "MFCC Delta2 5 mean"
+    },
+    {
+      "index": 57,
+      "name": "MFCC Delta2 6 mean"
+    },
+    {
+      "index": 58,
+      "name": "MFCC Delta2 7 mean"
+    },
+    {
+      "index": 59,
+      "name": "MFCC Delta2 8 mean"
+    },
+    {
+      "index": 60,
+      "name": "MFCC Delta2 9 mean"
+    },
+    {
+      "index": 61,
+      "name": "MFCC Delta2 10 mean"
+    },
+    {
+      "index": 62,
+      "name": "MFCC Delta2 11 mean"
+    },
+    {
+      "index": 63,
+      "name": "MFCC Delta2 12 mean"
+    },
+    {
+      "index": 64,
+      "name": "MFCC Delta2 13 mean"
+    },
+    {
+      "index": 65,
+      "name": "MFCC Delta2 1 std"
+    },
+    {
+      "index": 66,
+      "name": "MFCC Delta2 2 std"
+    },
+    {
+      "index": 67,
+      "name": "MFCC Delta2 3 std"
+    },
+    {
+      "index": 68,
+      "name": "MFCC Delta2 4 std"
+    },
+    {
+      "index": 69,
+      "name": "MFCC Delta2 5 std"
+    },
+    {
+      "index": 70,
+      "name": "MFCC Delta2 6 std"
+    },
+    {
+      "index": 71,
+      "name": "MFCC Delta2 7 std"
+    },
+    {
+      "index": 72,
+      "name": "MFCC Delta2 8 std"
+    },
+    {
+      "index": 73,
+      "name": "MFCC Delta2 9 std"
+    },
+    {
+      "index": 74,
+      "name": "MFCC Delta2 10 std"
+    },
+    {
+      "index": 75,
+      "name": "MFCC Delta2 11 std"
+    },
+    {
+      "index": 76,
+      "name": "MFCC Delta2 12 std"
+    },
+    {
+      "index": 77,
+      "name": "MFCC Delta2 13 std"
+    },
+    {
+      "index": 78,
+      "name": "ZCR mean"
+    },
+    {
+      "index": 79,
+      "name": "ZCR std"
+    },
+    {
+      "index": 80,
+      "name": "ZCR max"
+    },
+    {
+      "index": 81,
+      "name": "ZCR min"
+    },
+    {
+      "index": 82,
+      "name": "RMS mean"
+    },
+    {
+      "index": 83,
+      "name": "RMS std"
+    },
+    {
+      "index": 84,
+      "name": "RMS max"
+    },
+    {
+      "index": 85,
+      "name": "RMS min"
+    },
+    {
+      "index": 86,
+      "name": "RMS change rate"
+    },
+    {
+      "index": 87,
+      "name": "Spectral centroid mean"
+    },
+    {
+      "index": 88,
+      "name": "Spectral centroid std"
+    },
+    {
+      "index": 89,
+      "name": "Spectral rolloff mean"
+    },
+    {
+      "index": 90,
+      "name": "Spectral rolloff std"
+    },
+    {
+      "index": 91,
+      "name": "Spectral flux mean"
+    },
+    {
+      "index": 92,
+      "name": "Spectral flux std"
+    },
+    {
+      "index": 93,
+      "name": "Spectral bandwidth mean"
+    },
+    {
+      "index": 94,
+      "name": "Spectral bandwidth std"
+    },
+    {
+      "index": 95,
+      "name": "Chroma mean"
+    },
+    {
+      "index": 96,
+      "name": "Chroma std"
+    },
+    {
+      "index": 97,
+      "name": "Mel mean"
+    },
+    {
+      "index": 98,
+      "name": "Mel std"
+    },
+    {
+      "index": 99,
+      "name": "Mel max"
+    },
+    {
+      "index": 100,
+      "name": "Mel min"
+    },
+    {
+      "index": 101,
+      "name": "Tempo"
+    },
+    {
+      "index": 102,
+      "name": "Harmonic energy"
+    },
+    {
+      "index": 103,
+      "name": "Percussive energy"
+    },
+    {
+      "index": 104,
+      "name": "Harmonic ratio"
+    },
+    {
+      "index": 105,
+      "name": "Silence ratio"
+    }
+  ]
+}

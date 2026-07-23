@@ -9,9 +9,18 @@ data/clean_speech/
 data/clean_noise/
 models/*.pkl
 models/*.pt
+models/archive/*.pkl
+models/archive/*.pt
+# models/registry/** is intentionally NOT ignored — frozen baselines are
+# versioned in git for reproducibility (see models/registry/nova-vad-v0.1/).
 *.egg-info/
 dist/
 build/
 .env
 data/mic_speech/
 data/mic_noise/
+data/scenes/
+data/manifests/
+models/frame_vad_v1_hysteresis.json
+# ^ working copy; canonical version is models/registry/nova-vad-frame-v1/
+data/tmp_sb*.wav

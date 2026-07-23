@@ -1,0 +1,20 @@
+# Research/experimentation dependencies — not required for the runtime
+# inference path, but used for explainability research (src/explainer.py's
+# `shap` import) and the standalone neural-network experiment
+# (src/neural_vad.py). Install on top of requirements-runtime.txt.
+#
+# Note: `shap` is currently imported but unused in src/explainer.py — the
+# explainer uses global Random Forest feature_importances_, not TreeSHAP yet.
+# Kept here because local per-sample attribution (TreeSHAP) is the
+# recommended next step for sample-faithful explanations.
+
+shap==0.52.0
+torch==2.12.1
+pandas==3.0.3
+matplotlib==3.11.0
+contourpy==1.3.3
+cycler==0.12.1
+fonttools==4.63.0
+kiwisolver==1.5.0
+pyparsing==3.3.2
+pillow==12.2.0

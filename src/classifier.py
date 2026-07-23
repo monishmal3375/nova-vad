@@ -1,5 +1,4 @@
 import os
-from pyexpat import features
 import numpy as np
 import librosa
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
@@ -10,7 +9,7 @@ import joblib
 
 def extract_features(file_path: str) -> np.ndarray:
     """
-    Extracts 150+ temporal and spectral features from a .wav file.
+    Extracts 106 temporal and spectral features from a .wav file.
     Captures both WHAT audio sounds like and HOW it changes over time.
     """
     audio, sr = librosa.load(file_path, sr=16000, mono=True)

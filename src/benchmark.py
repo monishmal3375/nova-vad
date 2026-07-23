@@ -334,23 +334,37 @@ def print_benchmark(results: list, n_test: int):
 
 # ── Main ───────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    CLEAN_SPEECH = "data/clean_speech"
-    CLEAN_NOISE  = "data/clean_noise"
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--denoised", action="store_true",
+                         help="Benchmark on data/clean_speech + data/clean_noise instead of "
+                              "raw data/speech + data/noise. Raw is the default: the denoiser "
+                              "uses each clip's first 0.5s as its noise profile, which can "
+                              "remove real speech energy — see src/denoiser.py.")
+    args = parser.parse_args()
+
+    if args.denoised:
+        SPEECH_DIR = "data/clean_speech"
+        NOISE_DIR  = "data/clean_noise"
+    else:
+        SPEECH_DIR = "data/speech"
+        NOISE_DIR  = "data/noise"
 
     print("=" * 65)
     print("  NOVA-VAD BENCHMARK")
+    print(f"  Input: {'denoised' if args.denoised else 'raw'} audio ({SPEECH_DIR}, {NOISE_DIR})")
     print("=" * 65)
 
     # split dataset
     print("\n[ STEP 1 ] Splitting dataset 80/20...")
     train_speech, train_noise, test_speech, test_noise = split_dataset(
-        CLEAN_SPEECH, CLEAN_NOISE
+        SPEECH_DIR, NOISE_DIR
     )
 
     # train NOVA-VAD on training set only
     print("\n[ STEP 2 ] Training NOVA-VAD on training set...")
     rf, gbt, scaler = train_nova_vad(
-        train_speech, train_noise, CLEAN_SPEECH, CLEAN_NOISE
+        train_speech, train_noise, SPEECH_DIR, NOISE_DIR
     )
     print("  Training complete.")
 
@@ -359,23 +373,23 @@ if __name__ == "__main__":
     print("\n[ STEP 3 ] Testing all models on held-out test set...")
 
     print("\n  Running WebRTC VAD...")
-    webrtc_r = run_webrtc(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    webrtc_r = run_webrtc(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {webrtc_r['accuracy']}%")
 
     print("\n  Running NOVA-VAD...")
-    nova_r = run_nova_vad(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE, rf, gbt, scaler)
+    nova_r = run_nova_vad(test_speech, test_noise, SPEECH_DIR, NOISE_DIR, rf, gbt, scaler)
     print(f"  Done — {nova_r['accuracy']}%")
 
     print("\n  Running Silero VAD...")
-    silero_r = run_silero(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    silero_r = run_silero(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {silero_r['accuracy']}%")
 
     print("\n  Running Pyannote VAD...")
-    pyannote_r = run_pyannote(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    pyannote_r = run_pyannote(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {pyannote_r['accuracy']}%")
 
     print("\n  Running SpeechBrain VAD...")
-    speechbrain_r = run_speechbrain(test_speech, test_noise, CLEAN_SPEECH, CLEAN_NOISE)
+    speechbrain_r = run_speechbrain(test_speech, test_noise, SPEECH_DIR, NOISE_DIR)
     print(f"  Done — {speechbrain_r['accuracy']}%")
 
     print_benchmark([webrtc_r, nova_r, silero_r, pyannote_r, speechbrain_r], n_test)

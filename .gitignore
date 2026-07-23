@@ -22,5 +22,6 @@ data/mic_noise/
 data/scenes/
 data/manifests/
 models/frame_vad_v1_hysteresis.json
-# ^ working copy; canonical version is models/registry/nova-vad-frame-v1/
+models/frame_vad_v2_hysteresis.json
+# ^ working copies; canonical versions are models/registry/nova-vad-frame-v*/
 data/tmp_sb*.wav

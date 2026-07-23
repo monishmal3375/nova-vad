@@ -25,14 +25,22 @@ inside continuous audio, not just whether a whole file is speech — the
 original whole-file-trained ensemble ("NOVA-VAD v0") scored **worst of 5
 systems, with a negative MCC (-0.28)**, worse than an uninformed guess. That
 led to a second model, **NOVA-VAD-frame-v1**, trained directly on true
-per-frame labels with a causal feature set — it recovers to **69.9% frame
-accuracy, MCC +0.34**, ahead of WebRTC but still behind Silero, Pyannote, and
-SpeechBrain (it is the single best system on clean audio, but less
-noise-robust than the neural baselines). Full results in
+per-frame labels with a causal feature set — it recovers to 69.9% frame
+accuracy, MCC +0.34, ahead of WebRTC but still behind Silero, Pyannote, and
+SpeechBrain. A third pass, **NOVA-VAD-frame-v2**, added noise-robust
+periodicity/harmonicity features and 4x the noisy training data, tuned
+strictly on a held-out validation split (never the locked test set) — it
+reaches **78.99% accuracy, MCC +0.43**, closing most of the gap to
+SpeechBrain (0.44), though a real precision/recall trade-off and a small
+(-1.1pp) clean-audio shift came with it — see the explicit flags in
+`reports/decision_v3.md` before citing these numbers uncritically. Full
+results in
 [`reports/frame_level_benchmark_v1.md`](reports/frame_level_benchmark_v1.md);
-the two decision writeups are
-[`reports/decision_v1.md`](reports/decision_v1.md) (why v0 failed) and
-[`reports/decision_v2.md`](reports/decision_v2.md) (whether the fix worked).
+the decision writeups are
+[`reports/decision_v1.md`](reports/decision_v1.md) (why v0 failed),
+[`reports/decision_v2.md`](reports/decision_v2.md) (v1's fix), and
+[`reports/decision_v3.md`](reports/decision_v3.md) (v2's noise-robustness
+pass, with a full integrity/leakage audit trail).
 The 93%/92% numbers below are still real, but they measure a much narrower
 task (whole-file classification, not frame-level detection — see next
 section).
@@ -189,7 +197,7 @@ python3 -m src.benchmark             # raw audio (default)
 python3 -m src.benchmark --denoised  # opt into denoising
 ```
 
-### Reproduce the frame-level benchmark (NOVA-VAD v0 vs. v1 vs. baselines)
+### Reproduce the frame-level benchmark (NOVA-VAD v0 vs. v1 vs. v2 vs. baselines)
 
 ```bash
 python3 -m scripts.generate_scenes       # builds train/dev/test mixed scenes (deterministic, seeded)
@@ -197,6 +205,13 @@ python3 -m scripts.frame_benchmark       # scores v0 + WebRTC/Silero/Pyannote/Sp
 python3 -m scripts.train_frame_vad       # trains NOVA-VAD-frame-v1 on the train scenes
 python3 -m scripts.tune_frame_vad_v1     # tunes hysteresis thresholds on dev scenes only
 python3 -m scripts.evaluate_frame_vad_v1 # scores v1 on the locked test scenes, updates reports/
+
+# v2 (noise-robustness pass — see reports/decision_v3.md for the full integrity trail)
+python3 -m scripts.generate_val_split    # separate validation split, seed=43, never touches test
+python3 -m scripts.generate_train2_split # 300 additional train scenes, seed=44, train-only noise
+python3 -m scripts.train_frame_vad_v2    # trains on train+train2, 62 features (58 + noise-robust)
+python3 -m scripts.tune_frame_vad_v2     # tunes on val only, never dev or test
+python3 -m scripts.evaluate_frame_vad_v2 # single evaluation on the locked test scenes
 ```
 
 ---
@@ -265,8 +280,9 @@ nova-vad/
 - [x] Real-time streaming audio support (mic-calibrated demo)
 - [x] Frame-level (10ms resolution) benchmark with mixed speech+noise scenes and grouped splits
 - [x] Frame-level model trained on true per-frame labels (NOVA-VAD-frame-v1, MCC -0.28 → +0.34)
-- [ ] Noise-robustness gap vs. Silero/Pyannote closed (currently behind at low SNR)
-- [ ] `src/stream.py` real-time path updated to use the frame-v1 model
+- [x] Noise-robustness pass (NOVA-VAD-frame-v2, MCC +0.34 → +0.43; still behind Pyannote/Silero — see reports/decision_v3.md)
+- [ ] Benchmark needs more unique noise files per SNR condition (currently 8/condition — not enough to separate SNR effects from noise-file-identity effects, see decision_v3.md's diagnostic)
+- [ ] `src/stream.py` real-time path updated to use a frame-level model
 - [ ] Per-sample (local) explanation via TreeSHAP
 - [ ] Separate anti-spoofing / synthetic-speech detection model
 - [ ] pip install nova-vad packaging

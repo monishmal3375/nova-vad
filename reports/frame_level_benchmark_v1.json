@@ -125,6 +125,69 @@
       }
     }
   },
+  "NOVA-VAD-frame-v2": {
+    "overall": {
+      "accuracy": 78.99,
+      "precision": 57.1,
+      "recall": 56.24,
+      "f1": 56.67,
+      "mcc": 0.428,
+      "tp": 6595,
+      "tn": 31319,
+      "fp": 4955,
+      "fn": 5131,
+      "accuracy_ci95": [
+        73.06,
+        83.75
+      ]
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 89.53,
+        "precision": 80.75,
+        "recall": 71.05,
+        "f1": 75.59,
+        "mcc": 0.6918,
+        "tp": 1946,
+        "tn": 8797,
+        "fp": 464,
+        "fn": 793
+      },
+      "snr_10db": {
+        "accuracy": 73.67,
+        "precision": 46.03,
+        "recall": 64.95,
+        "f1": 53.88,
+        "mcc": 0.3725,
+        "tp": 1846,
+        "tn": 6994,
+        "fp": 2164,
+        "fn": 996
+      },
+      "snr_0db": {
+        "accuracy": 78.78,
+        "precision": 54.74,
+        "recall": 66.91,
+        "f1": 60.22,
+        "mcc": 0.4638,
+        "tp": 1927,
+        "tn": 7527,
+        "fp": 1593,
+        "fn": 953
+      },
+      "snr_-5db": {
+        "accuracy": 73.98,
+        "precision": 54.41,
+        "recall": 26.83,
+        "f1": 35.94,
+        "mcc": 0.2406,
+        "tp": 876,
+        "tn": 8001,
+        "fp": 734,
+        "fn": 2389
+      }
+    }
+  },
   "WebRTC VAD": {
     "overall": {
       "accuracy": 53.76,

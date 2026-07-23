@@ -1,0 +1,450 @@
+{
+  "NOVA-VAD": {
+    "overall": {
+      "accuracy": 38.03,
+      "precision": 15.86,
+      "recall": 35.96,
+      "f1": 22.01,
+      "mcc": -0.2186,
+      "tp": 10496,
+      "tn": 35136,
+      "fp": 55679,
+      "fn": 18689,
+      "accuracy_ci95": [
+        34.56,
+        41.74
+      ],
+      "ci_width": 7.18
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 34.77,
+        "precision": 15.76,
+        "recall": 39.47,
+        "f1": 22.53,
+        "mcc": -0.2377,
+        "tp": 2845,
+        "tn": 7587,
+        "fp": 15205,
+        "fn": 4363
+      },
+      "snr_10db": {
+        "accuracy": 32.09,
+        "precision": 12.81,
+        "recall": 31.96,
+        "f1": 18.29,
+        "mcc": -0.3113,
+        "tp": 2280,
+        "tn": 7346,
+        "fp": 15520,
+        "fn": 4854
+      },
+      "snr_0db": {
+        "accuracy": 43.74,
+        "precision": 18.8,
+        "recall": 38.22,
+        "f1": 25.2,
+        "mcc": -0.14,
+        "tp": 2843,
+        "tn": 10280,
+        "fp": 12282,
+        "fn": 4595
+      },
+      "snr_-5db": {
+        "accuracy": 41.5,
+        "precision": 16.63,
+        "recall": 34.14,
+        "f1": 22.37,
+        "mcc": -0.1892,
+        "tp": 2528,
+        "tn": 9923,
+        "fp": 12672,
+        "fn": 4877
+      }
+    }
+  },
+  "WebRTC VAD": {
+    "overall": {
+      "accuracy": 54.75,
+      "precision": 32.3,
+      "recall": 78.52,
+      "f1": 45.77,
+      "mcc": 0.2236,
+      "tp": 22915,
+      "tn": 42780,
+      "fp": 48035,
+      "fn": 6270,
+      "accuracy_ci95": [
+        49.35,
+        60.34
+      ],
+      "ci_width": 10.99
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 89.93,
+        "precision": 94.44,
+        "recall": 61.71,
+        "f1": 74.64,
+        "mcc": 0.7112,
+        "tp": 4448,
+        "tn": 22530,
+        "fp": 262,
+        "fn": 2760
+      },
+      "snr_10db": {
+        "accuracy": 50.19,
+        "precision": 29.58,
+        "recall": 79.28,
+        "f1": 43.08,
+        "mcc": 0.1806,
+        "tp": 5656,
+        "tn": 9400,
+        "fp": 13466,
+        "fn": 1478
+      },
+      "snr_0db": {
+        "accuracy": 39.54,
+        "precision": 27.43,
+        "recall": 87.39,
+        "f1": 41.75,
+        "mcc": 0.1183,
+        "tp": 6500,
+        "tn": 5362,
+        "fp": 17200,
+        "fn": 938
+      },
+      "snr_-5db": {
+        "accuracy": 39.33,
+        "precision": 26.95,
+        "recall": 85.23,
+        "f1": 40.95,
+        "mcc": 0.0991,
+        "tp": 6311,
+        "tn": 5488,
+        "fp": 17107,
+        "fn": 1094
+      }
+    }
+  },
+  "NOVA-VAD-frame-v1": {
+    "overall": {
+      "accuracy": 68.94,
+      "precision": 41.89,
+      "recall": 71.55,
+      "f1": 52.84,
+      "mcc": 0.3452,
+      "tp": 20882,
+      "tn": 61847,
+      "fp": 28968,
+      "fn": 8303,
+      "accuracy_ci95": [
+        63.98,
+        73.61
+      ],
+      "ci_width": 9.63
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 85.06,
+        "precision": 67.54,
+        "recall": 72.81,
+        "f1": 70.08,
+        "mcc": 0.6021,
+        "tp": 5248,
+        "tn": 20270,
+        "fp": 2522,
+        "fn": 1960
+      },
+      "snr_10db": {
+        "accuracy": 69.95,
+        "precision": 42.36,
+        "recall": 73.09,
+        "f1": 53.63,
+        "mcc": 0.364,
+        "tp": 5214,
+        "tn": 15770,
+        "fp": 7096,
+        "fn": 1920
+      },
+      "snr_0db": {
+        "accuracy": 63.03,
+        "precision": 36.64,
+        "recall": 67.4,
+        "f1": 47.48,
+        "mcc": 0.2513,
+        "tp": 5013,
+        "tn": 13895,
+        "fp": 8667,
+        "fn": 2425
+      },
+      "snr_-5db": {
+        "accuracy": 57.73,
+        "precision": 33.6,
+        "recall": 73.02,
+        "f1": 46.03,
+        "mcc": 0.2225,
+        "tp": 5407,
+        "tn": 11912,
+        "fp": 10683,
+        "fn": 1998
+      }
+    }
+  },
+  "NOVA-VAD-frame-v2": {
+    "overall": {
+      "accuracy": 78.88,
+      "precision": 56.22,
+      "recall": 59.54,
+      "f1": 57.83,
+      "mcc": 0.4379,
+      "tp": 17377,
+      "tn": 77282,
+      "fp": 13533,
+      "fn": 11808,
+      "accuracy_ci95": [
+        75.52,
+        81.81
+      ],
+      "ci_width": 6.29
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 87.86,
+        "precision": 77.95,
+        "recall": 68.99,
+        "f1": 73.2,
+        "mcc": 0.6559,
+        "tp": 4973,
+        "tn": 21385,
+        "fp": 1407,
+        "fn": 2235
+      },
+      "snr_10db": {
+        "accuracy": 81.9,
+        "precision": 61.7,
+        "recall": 62.97,
+        "f1": 62.33,
+        "mcc": 0.5042,
+        "tp": 4492,
+        "tn": 20078,
+        "fp": 2788,
+        "fn": 2642
+      },
+      "snr_0db": {
+        "accuracy": 72.63,
+        "precision": 45.65,
+        "recall": 54.44,
+        "f1": 49.66,
+        "mcc": 0.3129,
+        "tp": 4049,
+        "tn": 17741,
+        "fp": 4821,
+        "fn": 3389
+      },
+      "snr_-5db": {
+        "accuracy": 73.14,
+        "precision": 46.1,
+        "recall": 52.17,
+        "f1": 48.95,
+        "mcc": 0.3092,
+        "tp": 3863,
+        "tn": 18078,
+        "fp": 4517,
+        "fn": 3542
+      }
+    }
+  },
+  "Silero VAD": {
+    "overall": {
+      "accuracy": 84.06,
+      "precision": 85.07,
+      "recall": 41.82,
+      "f1": 56.07,
+      "mcc": 0.5218,
+      "tp": 12204,
+      "tn": 88673,
+      "fp": 2142,
+      "fn": 16981,
+      "accuracy_ci95": [
+        82.74,
+        85.3
+      ],
+      "ci_width": 2.56
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 86.59,
+        "precision": 94.72,
+        "recall": 46.81,
+        "f1": 62.66,
+        "mcc": 0.6074,
+        "tp": 3374,
+        "tn": 22604,
+        "fp": 188,
+        "fn": 3834
+      },
+      "snr_10db": {
+        "accuracy": 86.11,
+        "precision": 88.33,
+        "recall": 47.94,
+        "f1": 62.15,
+        "mcc": 0.5836,
+        "tp": 3420,
+        "tn": 22414,
+        "fp": 452,
+        "fn": 3714
+      },
+      "snr_0db": {
+        "accuracy": 83.66,
+        "precision": 78.53,
+        "recall": 46.92,
+        "f1": 58.74,
+        "mcc": 0.519,
+        "tp": 3490,
+        "tn": 21608,
+        "fp": 954,
+        "fn": 3948
+      },
+      "snr_-5db": {
+        "accuracy": 79.89,
+        "precision": 77.8,
+        "recall": 25.93,
+        "f1": 38.89,
+        "mcc": 0.3688,
+        "tp": 1920,
+        "tn": 22047,
+        "fp": 548,
+        "fn": 5485
+      }
+    }
+  },
+  "Pyannote VAD": {
+    "overall": {
+      "accuracy": 84.54,
+      "precision": 78.99,
+      "recall": 49.66,
+      "f1": 60.98,
+      "mcc": 0.5414,
+      "tp": 14492,
+      "tn": 86961,
+      "fp": 3854,
+      "fn": 14693,
+      "accuracy_ci95": [
+        82.58,
+        86.26
+      ],
+      "ci_width": 3.68
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 86.77,
+        "precision": 94.07,
+        "recall": 47.97,
+        "f1": 63.54,
+        "mcc": 0.6126,
+        "tp": 3458,
+        "tn": 22574,
+        "fp": 218,
+        "fn": 3750
+      },
+      "snr_10db": {
+        "accuracy": 82.86,
+        "precision": 68.02,
+        "recall": 52.66,
+        "f1": 59.37,
+        "mcc": 0.4937,
+        "tp": 3757,
+        "tn": 21100,
+        "fp": 1766,
+        "fn": 3377
+      },
+      "snr_0db": {
+        "accuracy": 84.55,
+        "precision": 79.35,
+        "recall": 50.93,
+        "f1": 62.04,
+        "mcc": 0.5496,
+        "tp": 3788,
+        "tn": 21576,
+        "fp": 986,
+        "fn": 3650
+      },
+      "snr_-5db": {
+        "accuracy": 84.0,
+        "precision": 79.79,
+        "recall": 47.12,
+        "f1": 59.25,
+        "mcc": 0.5279,
+        "tp": 3489,
+        "tn": 21711,
+        "fp": 884,
+        "fn": 3916
+      }
+    }
+  },
+  "SpeechBrain VAD": {
+    "overall": {
+      "accuracy": 71.21,
+      "precision": 44.51,
+      "recall": 74.47,
+      "f1": 55.72,
+      "mcc": 0.3898,
+      "tp": 21735,
+      "tn": 63719,
+      "fp": 27096,
+      "fn": 7450,
+      "accuracy_ci95": [
+        68.44,
+        73.81
+      ],
+      "ci_width": 5.37
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 73.8,
+        "precision": 47.46,
+        "recall": 84.66,
+        "f1": 60.83,
+        "mcc": 0.475,
+        "tp": 6102,
+        "tn": 16038,
+        "fp": 6754,
+        "fn": 1106
+      },
+      "snr_10db": {
+        "accuracy": 73.46,
+        "precision": 46.79,
+        "recall": 84.59,
+        "f1": 60.26,
+        "mcc": 0.4694,
+        "tp": 6035,
+        "tn": 16004,
+        "fp": 6862,
+        "fn": 1099
+      },
+      "snr_0db": {
+        "accuracy": 67.42,
+        "precision": 41.36,
+        "recall": 75.15,
+        "f1": 53.36,
+        "mcc": 0.3474,
+        "tp": 5590,
+        "tn": 14637,
+        "fp": 7925,
+        "fn": 1848
+      },
+      "snr_-5db": {
+        "accuracy": 70.16,
+        "precision": 41.91,
+        "recall": 54.13,
+        "f1": 47.24,
+        "mcc": 0.2733,
+        "tp": 4008,
+        "tn": 17040,
+        "fp": 5555,
+        "fn": 3397
+      }
+    }
+  }
+}

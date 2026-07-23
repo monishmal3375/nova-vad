@@ -23,5 +23,7 @@ data/scenes/
 data/manifests/
 models/frame_vad_v1_hysteresis.json
 models/frame_vad_v2_hysteresis.json
+models/frame_vad_v3_hysteresis.json
 # ^ working copies; canonical versions are models/registry/nova-vad-frame-v*/
 data/tmp_sb*.wav
+reports/ablation_train_features_cache.npz

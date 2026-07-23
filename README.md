@@ -32,15 +32,33 @@ periodicity/harmonicity features and 4x the noisy training data, tuned
 strictly on a held-out validation split (never the locked test set) — it
 reaches **78.99% accuracy, MCC +0.43**, closing most of the gap to
 SpeechBrain (0.44), though a real precision/recall trade-off and a small
-(-1.1pp) clean-audio shift came with it — see the explicit flags in
-`reports/decision_v3.md` before citing these numbers uncritically. Full
-results in
+(-1.1pp) clean-audio shift came with it, flagged as open questions.
+
+**Round 2 (same date) found the benchmark itself was part of the problem:**
+a leave-one-noise-file-out analysis showed a single noise file could swing
+a condition's accuracy by up to **11.9pp** with only 8 unique noise files
+per condition — affecting all 7 systems compared, not just NOVA-VAD. Fixed
+by expanding to 25 unique noise files/condition (`data/scenes/test_v2/`,
+test-only noise pool, zero leakage) — confidence intervals tightened
+24-50% for every system. On the now-more-trustworthy benchmark: the
+clean-audio "regression" reversed on a larger sample (turned out to be
+sampling noise, not a real cost); the precision/recall trade-off got a
+full 84-point threshold curve instead of one blind operating point; and a
+follow-up attempt to close the noise gap with targeted low-SNR training
+data **failed outright** (regressed every condition, -8.7pp at 10dB) and
+was not deployed — reported as a negative result, not hidden.
+**NOVA-VAD-frame-v2 remains the best model**: 78.88% accuracy, MCC 0.438
+on test_v2, still behind Pyannote (0.541) and Silero (0.522).
+
+Full results in
 [`reports/frame_level_benchmark_v1.md`](reports/frame_level_benchmark_v1.md);
 the decision writeups are
 [`reports/decision_v1.md`](reports/decision_v1.md) (why v0 failed),
-[`reports/decision_v2.md`](reports/decision_v2.md) (v1's fix), and
+[`reports/decision_v2.md`](reports/decision_v2.md) (v1's fix),
 [`reports/decision_v3.md`](reports/decision_v3.md) (v2's noise-robustness
-pass, with a full integrity/leakage audit trail).
+pass), and
+[`reports/decision_v4.md`](reports/decision_v4.md) (round 2: the benchmark
+validity fix, both open flags resolved, and the v3 negative result).
 The 93%/92% numbers below are still real, but they measure a much narrower
 task (whole-file classification, not frame-level detection — see next
 section).

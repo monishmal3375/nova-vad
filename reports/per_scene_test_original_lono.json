@@ -1,0 +1,499 @@
+{
+  "NOVA-VAD": {
+    "clean": {
+      "full_condition_accuracy": 26.22,
+      "n_unique_noise_files": 9,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_029.wav": 2.89,
+        "noise_052.wav": 2.8,
+        "noise_060.wav": -1.75,
+        "noise_080.wav": 2.02,
+        "noise_083.wav": -1.75,
+        "noise_112.wav": 0.1,
+        "noise_126.wav": -2.04,
+        "noise_224.wav": -0.09,
+        "noise_244.wav": -2.41
+      },
+      "max_abs_swing": 2.89,
+      "mean_abs_swing": 1.76
+    },
+    "snr_10db": {
+      "full_condition_accuracy": 33.33,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_022.wav": 3.16,
+        "noise_093.wav": 0.81,
+        "noise_112.wav": -2.81,
+        "noise_133.wav": 3.27,
+        "noise_152.wav": -1.69,
+        "noise_180.wav": 4.87,
+        "noise_224.wav": -1.53,
+        "noise_244.wav": -6.23
+      },
+      "max_abs_swing": 6.23,
+      "mean_abs_swing": 3.05
+    },
+    "snr_0db": {
+      "full_condition_accuracy": 36.18,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_046.wav": -1.86,
+        "noise_054.wav": 2.12,
+        "noise_073.wav": 3.0,
+        "noise_112.wav": -1.39,
+        "noise_126.wav": -0.08,
+        "noise_157.wav": 2.9,
+        "noise_171.wav": -0.71,
+        "noise_176.wav": -4.56
+      },
+      "max_abs_swing": 4.56,
+      "mean_abs_swing": 2.08
+    },
+    "snr_-5db": {
+      "full_condition_accuracy": 37.32,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_030.wav": 2.38,
+        "noise_066.wav": 1.38,
+        "noise_110.wav": 2.75,
+        "noise_122.wav": -2.52,
+        "noise_176.wav": -2.32,
+        "noise_185.wav": 0.65,
+        "noise_208.wav": 1.21,
+        "noise_218.wav": -4.3
+      },
+      "max_abs_swing": 4.3,
+      "mean_abs_swing": 2.19
+    }
+  },
+  "WebRTC VAD": {
+    "clean": {
+      "full_condition_accuracy": 90.17,
+      "n_unique_noise_files": 9,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_029.wav": 0.15,
+        "noise_052.wav": 0.61,
+        "noise_060.wav": 0.33,
+        "noise_080.wav": -0.32,
+        "noise_083.wav": 0.59,
+        "noise_112.wav": -1.05,
+        "noise_126.wav": 0.07,
+        "noise_224.wav": -0.87,
+        "noise_244.wav": 0.49
+      },
+      "max_abs_swing": 1.05,
+      "mean_abs_swing": 0.5
+    },
+    "snr_10db": {
+      "full_condition_accuracy": 38.62,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_022.wav": 1.57,
+        "noise_093.wav": -2.17,
+        "noise_112.wav": 0.35,
+        "noise_133.wav": 5.53,
+        "noise_152.wav": -0.56,
+        "noise_180.wav": 1.21,
+        "noise_224.wav": -2.36,
+        "noise_244.wav": -3.86
+      },
+      "max_abs_swing": 5.53,
+      "mean_abs_swing": 2.2
+    },
+    "snr_0db": {
+      "full_condition_accuracy": 41.64,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_046.wav": -0.34,
+        "noise_054.wav": -0.66,
+        "noise_073.wav": -1.24,
+        "noise_112.wav": -1.82,
+        "noise_126.wav": 3.08,
+        "noise_157.wav": -2.26,
+        "noise_171.wav": 8.81,
+        "noise_176.wav": -5.16
+      },
+      "max_abs_swing": 8.81,
+      "mean_abs_swing": 2.92
+    },
+    "snr_-5db": {
+      "full_condition_accuracy": 44.62,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_030.wav": 0.12,
+        "noise_066.wav": -0.73,
+        "noise_110.wav": 1.6,
+        "noise_122.wav": -0.81,
+        "noise_176.wav": -3.5,
+        "noise_185.wav": 2.47,
+        "noise_208.wav": 2.26,
+        "noise_218.wav": -1.69
+      },
+      "max_abs_swing": 3.5,
+      "mean_abs_swing": 1.65
+    }
+  },
+  "NOVA-VAD-frame-v1": {
+    "clean": {
+      "full_condition_accuracy": 90.61,
+      "n_unique_noise_files": 9,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_029.wav": -0.1,
+        "noise_052.wav": 0.19,
+        "noise_060.wav": 0.17,
+        "noise_080.wav": -0.11,
+        "noise_083.wav": 0.66,
+        "noise_112.wav": -0.35,
+        "noise_126.wav": 0.12,
+        "noise_224.wav": -0.48,
+        "noise_244.wav": -0.1
+      },
+      "max_abs_swing": 0.66,
+      "mean_abs_swing": 0.25
+    },
+    "snr_10db": {
+      "full_condition_accuracy": 69.93,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_022.wav": 1.12,
+        "noise_093.wav": -0.94,
+        "noise_112.wav": 1.85,
+        "noise_133.wav": -1.04,
+        "noise_152.wav": 1.96,
+        "noise_180.wav": -10.96,
+        "noise_224.wav": 2.51,
+        "noise_244.wav": 4.82
+      },
+      "max_abs_swing": 10.96,
+      "mean_abs_swing": 3.15
+    },
+    "snr_0db": {
+      "full_condition_accuracy": 55.37,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_046.wav": 1.7,
+        "noise_054.wav": -2.01,
+        "noise_073.wav": -2.79,
+        "noise_112.wav": 3.6,
+        "noise_126.wav": 2.74,
+        "noise_157.wav": -2.69,
+        "noise_171.wav": 7.15,
+        "noise_176.wav": -7.76
+      },
+      "max_abs_swing": 7.76,
+      "mean_abs_swing": 3.8
+    },
+    "snr_-5db": {
+      "full_condition_accuracy": 63.62,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_030.wav": -3.5,
+        "noise_066.wav": 0.99,
+        "noise_110.wav": 1.26,
+        "noise_122.wav": 2.36,
+        "noise_176.wav": -5.24,
+        "noise_185.wav": 1.75,
+        "noise_208.wav": -1.05,
+        "noise_218.wav": 4.15
+      },
+      "max_abs_swing": 5.24,
+      "mean_abs_swing": 2.54
+    }
+  },
+  "NOVA-VAD-frame-v2": {
+    "clean": {
+      "full_condition_accuracy": 89.53,
+      "n_unique_noise_files": 9,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_029.wav": -1.07,
+        "noise_052.wav": 0.31,
+        "noise_060.wav": 0.2,
+        "noise_080.wav": -0.1,
+        "noise_083.wav": 0.71,
+        "noise_112.wav": -0.32,
+        "noise_126.wav": 0.81,
+        "noise_224.wav": -0.35,
+        "noise_244.wav": -0.1
+      },
+      "max_abs_swing": 1.07,
+      "mean_abs_swing": 0.44
+    },
+    "snr_10db": {
+      "full_condition_accuracy": 73.67,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_022.wav": -0.04,
+        "noise_093.wav": 0.69,
+        "noise_112.wav": 1.51,
+        "noise_133.wav": 1.9,
+        "noise_152.wav": 1.19,
+        "noise_180.wav": -11.9,
+        "noise_224.wav": 2.09,
+        "noise_244.wav": 3.64
+      },
+      "max_abs_swing": 11.9,
+      "mean_abs_swing": 2.87
+    },
+    "snr_0db": {
+      "full_condition_accuracy": 78.78,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_046.wav": 0.6,
+        "noise_054.wav": -1.13,
+        "noise_073.wav": -5.76,
+        "noise_112.wav": 1.03,
+        "noise_126.wav": 1.36,
+        "noise_157.wav": -0.11,
+        "noise_171.wav": 2.11,
+        "noise_176.wav": 2.41
+      },
+      "max_abs_swing": 5.76,
+      "mean_abs_swing": 1.81
+    },
+    "snr_-5db": {
+      "full_condition_accuracy": 73.98,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_030.wav": -2.7,
+        "noise_066.wav": 1.17,
+        "noise_110.wav": -0.63,
+        "noise_122.wav": -0.51,
+        "noise_176.wav": 1.82,
+        "noise_185.wav": 0.19,
+        "noise_208.wav": 0.24,
+        "noise_218.wav": 0.41
+      },
+      "max_abs_swing": 2.7,
+      "mean_abs_swing": 0.96
+    }
+  },
+  "Silero VAD": {
+    "clean": {
+      "full_condition_accuracy": 88.09,
+      "n_unique_noise_files": 9,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_029.wav": -0.34,
+        "noise_052.wav": 0.4,
+        "noise_060.wav": 0.59,
+        "noise_080.wav": -0.6,
+        "noise_083.wav": 0.59,
+        "noise_112.wav": -0.58,
+        "noise_126.wav": 0.47,
+        "noise_224.wav": -0.39,
+        "noise_244.wav": -0.08
+      },
+      "max_abs_swing": 0.6,
+      "mean_abs_swing": 0.45
+    },
+    "snr_10db": {
+      "full_condition_accuracy": 87.02,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_022.wav": -0.72,
+        "noise_093.wav": 0.25,
+        "noise_112.wav": -0.37,
+        "noise_133.wav": 0.41,
+        "noise_152.wav": -0.58,
+        "noise_180.wav": 0.26,
+        "noise_224.wav": 0.43,
+        "noise_244.wav": 0.4
+      },
+      "max_abs_swing": 0.72,
+      "mean_abs_swing": 0.43
+    },
+    "snr_0db": {
+      "full_condition_accuracy": 84.38,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_046.wav": -0.14,
+        "noise_054.wav": -0.39,
+        "noise_073.wav": -0.58,
+        "noise_112.wav": 0.08,
+        "noise_126.wav": -1.32,
+        "noise_157.wav": 0.49,
+        "noise_171.wav": 1.04,
+        "noise_176.wav": 1.07
+      },
+      "max_abs_swing": 1.32,
+      "mean_abs_swing": 0.64
+    },
+    "snr_-5db": {
+      "full_condition_accuracy": 81.47,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_030.wav": -0.78,
+        "noise_066.wav": 0.64,
+        "noise_110.wav": -0.75,
+        "noise_122.wav": -0.25,
+        "noise_176.wav": 0.98,
+        "noise_185.wav": 0.27,
+        "noise_208.wav": -0.86,
+        "noise_218.wav": 0.81
+      },
+      "max_abs_swing": 0.98,
+      "mean_abs_swing": 0.67
+    }
+  },
+  "Pyannote VAD": {
+    "clean": {
+      "full_condition_accuracy": 88.39,
+      "n_unique_noise_files": 9,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_029.wav": -0.4,
+        "noise_052.wav": 0.07,
+        "noise_060.wav": 0.61,
+        "noise_080.wav": -0.45,
+        "noise_083.wav": 0.7,
+        "noise_112.wav": -0.61,
+        "noise_126.wav": 0.78,
+        "noise_224.wav": -0.69,
+        "noise_244.wav": 0.08
+      },
+      "max_abs_swing": 0.78,
+      "mean_abs_swing": 0.49
+    },
+    "snr_10db": {
+      "full_condition_accuracy": 81.84,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_022.wav": -0.1,
+        "noise_093.wav": 0.88,
+        "noise_112.wav": 0.71,
+        "noise_133.wav": 0.18,
+        "noise_152.wav": -0.04,
+        "noise_180.wav": -4.67,
+        "noise_224.wav": 1.39,
+        "noise_244.wav": 1.27
+      },
+      "max_abs_swing": 4.67,
+      "mean_abs_swing": 1.16
+    },
+    "snr_0db": {
+      "full_condition_accuracy": 80.64,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_046.wav": 0.42,
+        "noise_054.wav": 0.05,
+        "noise_073.wav": 0.16,
+        "noise_112.wav": -0.11,
+        "noise_126.wav": -5.34,
+        "noise_157.wav": 1.22,
+        "noise_171.wav": 1.88,
+        "noise_176.wav": 2.16
+      },
+      "max_abs_swing": 5.34,
+      "mean_abs_swing": 1.42
+    },
+    "snr_-5db": {
+      "full_condition_accuracy": 84.38,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_030.wav": 0.3,
+        "noise_066.wav": 0.31,
+        "noise_110.wav": -1.03,
+        "noise_122.wav": -0.24,
+        "noise_176.wav": 0.93,
+        "noise_185.wav": 0.06,
+        "noise_208.wav": -0.89,
+        "noise_218.wav": 0.6
+      },
+      "max_abs_swing": 1.03,
+      "mean_abs_swing": 0.54
+    }
+  },
+  "SpeechBrain VAD": {
+    "clean": {
+      "full_condition_accuracy": 77.05,
+      "n_unique_noise_files": 9,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_029.wav": -0.68,
+        "noise_052.wav": 1.05,
+        "noise_060.wav": 1.03,
+        "noise_080.wav": -0.49,
+        "noise_083.wav": 1.32,
+        "noise_112.wav": -0.96,
+        "noise_126.wav": -1.77,
+        "noise_224.wav": -0.89,
+        "noise_244.wav": 1.2
+      },
+      "max_abs_swing": 1.77,
+      "mean_abs_swing": 1.04
+    },
+    "snr_10db": {
+      "full_condition_accuracy": 78.61,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_022.wav": -1.43,
+        "noise_093.wav": 1.56,
+        "noise_112.wav": -0.52,
+        "noise_133.wav": 0.79,
+        "noise_152.wav": -1.47,
+        "noise_180.wav": 1.2,
+        "noise_224.wav": 0.36,
+        "noise_244.wav": -0.41
+      },
+      "max_abs_swing": 1.56,
+      "mean_abs_swing": 0.97
+    },
+    "snr_0db": {
+      "full_condition_accuracy": 68.82,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_046.wav": 0.15,
+        "noise_054.wav": -4.14,
+        "noise_073.wav": 0.65,
+        "noise_112.wav": 0.6,
+        "noise_126.wav": -0.91,
+        "noise_157.wav": 1.11,
+        "noise_171.wav": 0.48,
+        "noise_176.wav": 2.37
+      },
+      "max_abs_swing": 4.14,
+      "mean_abs_swing": 1.3
+    },
+    "snr_-5db": {
+      "full_condition_accuracy": 69.66,
+      "n_unique_noise_files": 8,
+      "n_scenes": 10,
+      "swings_by_file": {
+        "noise_030.wav": -3.3,
+        "noise_066.wav": 1.1,
+        "noise_110.wav": 0.14,
+        "noise_122.wav": 1.14,
+        "noise_176.wav": 1.44,
+        "noise_185.wav": -1.14,
+        "noise_208.wav": 0.04,
+        "noise_218.wav": 0.8
+      },
+      "max_abs_swing": 3.3,
+      "mean_abs_swing": 1.14
+    }
+  }
+}

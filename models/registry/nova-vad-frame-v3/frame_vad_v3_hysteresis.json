@@ -1,0 +1,12 @@
+{
+  "t_on": 0.45,
+  "t_off": 0.35,
+  "min_speech_frames": 15,
+  "min_gap_frames": 15,
+  "median_filter_size": 1,
+  "tuned_on": "data/scenes/val (40 scenes, train-source files, seed=43)",
+  "selection_objective": "frame F1 (same objective as v1/v2 tuning, for comparability)",
+  "val_f1_pct": 62.44,
+  "val_precision_pct": 59.87,
+  "val_recall_pct": 65.24
+}

@@ -1,0 +1,45 @@
+{
+  "results": {
+    "NOVA-VAD-v2 alone (raw prob >= 0.5, no hysteresis)": {
+      "accuracy": 82.22,
+      "precision": 70.28,
+      "recall": 54.52,
+      "f1": 61.41,
+      "mcc": 0.5078
+    },
+    "Average(NOVA-v2, Silero) >= 0.5": {
+      "accuracy": 79.27,
+      "precision": 92.84,
+      "recall": 21.76,
+      "f1": 35.25,
+      "mcc": 0.3883
+    },
+    "Majority vote (NOVA-v2, Silero, Pyannote), >=2 of 3": {
+      "accuracy": 84.33,
+      "precision": 94.82,
+      "recall": 41.88,
+      "f1": 58.1,
+      "mcc": 0.5653
+    },
+    "OR (any of 3 says speech)": {
+      "accuracy": 78.88,
+      "precision": 57.33,
+      "recall": 72.62,
+      "f1": 64.08,
+      "mcc": 0.501
+    },
+    "Logistic regression [nova_prob, silero_prob, pyannote_mask]": {
+      "accuracy": 85.4,
+      "precision": 81.81,
+      "recall": 56.23,
+      "f1": 66.65,
+      "mcc": 0.5938
+    }
+  },
+  "logistic_weights": {
+    "nova": 4.921561875289857,
+    "silero": 3.6568282309869393,
+    "pyannote": 1.3930889588315383,
+    "intercept": -3.581390804002029
+  }
+}

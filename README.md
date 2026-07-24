@@ -50,15 +50,33 @@ was not deployed — reported as a negative result, not hidden.
 **NOVA-VAD-frame-v2 remains the best model**: 78.88% accuracy, MCC 0.438
 on test_v2, still behind Pyannote (0.541) and Silero (0.522).
 
+**Round 3 tested whether NOVA-VAD-v2's low per-scene correlation with
+Pyannote/Silero (0.25-0.39, from round 2) was exploitable**: a simple
+logistic combination of NOVA-VAD-v2 + Silero + Pyannote frame
+probabilities, fit on `val` only, reached **MCC 0.56 on `test_v2`** —
+beating Pyannote (0.54) and Silero (0.52) individually. Real result, but
+comes with a real cost (running 3 systems instead of 1) that's a
+product/licensing decision, not a modeling one — see
+[`reports/phase_a_decision.md`](reports/phase_a_decision.md) for the
+verdict: **NOVA-VAD-frame-v2 is kept as the standalone model**;
+standalone architecture scaling looks exhausted (v3 regressed), but
+combination is a real, separately-evaluated open path.
+[`reports/phase_a_decision.md`](reports/phase_a_decision.md) also closes
+out the Phase A release-gate checklist honestly — codec/transmission and
+non-music hard-negative testing are confirmed gaps, not yet done.
+
 Full results in
 [`reports/frame_level_benchmark_v1.md`](reports/frame_level_benchmark_v1.md);
 the decision writeups are
 [`reports/decision_v1.md`](reports/decision_v1.md) (why v0 failed),
 [`reports/decision_v2.md`](reports/decision_v2.md) (v1's fix),
 [`reports/decision_v3.md`](reports/decision_v3.md) (v2's noise-robustness
-pass), and
-[`reports/decision_v4.md`](reports/decision_v4.md) (round 2: the benchmark
-validity fix, both open flags resolved, and the v3 negative result).
+pass),
+[`reports/decision_v4.md`](reports/decision_v4.md) (round 2: benchmark
+validity fix, both open flags resolved, v3 negative result), and
+[`reports/decision_v5.md`](reports/decision_v5.md) (round 3: the
+ensembling test). Evidence package for v2:
+[`reports/evidence_package_index.md`](reports/evidence_package_index.md).
 The 93%/92% numbers below are still real, but they measure a much narrower
 task (whole-file classification, not frame-level detection — see next
 section).

@@ -1,0 +1,94 @@
+{
+  "nova_alone": {
+    "overall": {
+      "accuracy": 78.66,
+      "precision": 55.73,
+      "recall": 59.56,
+      "f1": 57.58,
+      "mcc": 0.4339
+    },
+    "ci95": [
+      75.38,
+      81.44
+    ],
+    "by_condition": {
+      "clean": {
+        "accuracy": 88.2,
+        "precision": 78.57,
+        "recall": 69.98,
+        "f1": 74.02,
+        "mcc": 0.6661
+      },
+      "snr_10db": {
+        "accuracy": 81.21,
+        "precision": 60.14,
+        "recall": 62.21,
+        "f1": 61.15,
+        "mcc": 0.4878
+      },
+      "snr_0db": {
+        "accuracy": 72.91,
+        "precision": 46.06,
+        "recall": 54.18,
+        "f1": 49.79,
+        "mcc": 0.316
+      },
+      "snr_-5db": {
+        "accuracy": 72.32,
+        "precision": 44.8,
+        "recall": 52.28,
+        "f1": 48.25,
+        "mcc": 0.2968
+      }
+    }
+  },
+  "logistic_ensemble": {
+    "overall": {
+      "accuracy": 85.01,
+      "precision": 76.67,
+      "recall": 55.17,
+      "f1": 64.17,
+      "mcc": 0.562
+    },
+    "ci95": [
+      83.21,
+      86.6
+    ],
+    "by_condition": {
+      "clean": {
+        "accuracy": 90.95,
+        "precision": 88.98,
+        "recall": 71.16,
+        "f1": 79.08,
+        "mcc": 0.7414
+      },
+      "snr_10db": {
+        "accuracy": 85.71,
+        "precision": 74.47,
+        "recall": 60.71,
+        "f1": 66.89,
+        "mcc": 0.5839
+      },
+      "snr_0db": {
+        "accuracy": 81.76,
+        "precision": 69.04,
+        "recall": 47.92,
+        "f1": 56.57,
+        "mcc": 0.4672
+      },
+      "snr_-5db": {
+        "accuracy": 81.64,
+        "precision": 72.25,
+        "recall": 41.57,
+        "f1": 52.77,
+        "mcc": 0.4488
+      }
+    }
+  },
+  "weights_used": {
+    "nova": 4.921561875289857,
+    "silero": 3.6568282309869393,
+    "pyannote": 1.3930889588315383,
+    "intercept": -3.581390804002029
+  }
+}

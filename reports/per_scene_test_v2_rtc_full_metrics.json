@@ -1,0 +1,219 @@
+{
+  "NOVA-VAD": {
+    "overall": {
+      "accuracy": 31.13,
+      "precision": 15.51,
+      "recall": 35.07,
+      "f1": 21.5,
+      "mcc": -0.3202,
+      "tp": 566,
+      "tn": 1302,
+      "fp": 3084,
+      "fn": 1048,
+      "accuracy_ci95": [
+        18.88,
+        43.38
+      ],
+      "ci_width": 24.5
+    },
+    "by_condition": {
+      "real_rtc_transmission": {
+        "accuracy": 31.13,
+        "precision": 15.51,
+        "recall": 35.07,
+        "f1": 21.5,
+        "mcc": -0.3202,
+        "tp": 566,
+        "tn": 1302,
+        "fp": 3084,
+        "fn": 1048
+      }
+    }
+  },
+  "WebRTC VAD": {
+    "overall": {
+      "accuracy": 87.15,
+      "precision": 94.04,
+      "recall": 55.76,
+      "f1": 70.01,
+      "mcc": 0.6596,
+      "tp": 900,
+      "tn": 4329,
+      "fp": 57,
+      "fn": 714,
+      "accuracy_ci95": [
+        82.67,
+        92.05
+      ],
+      "ci_width": 9.38
+    },
+    "by_condition": {
+      "real_rtc_transmission": {
+        "accuracy": 87.15,
+        "precision": 94.04,
+        "recall": 55.76,
+        "f1": 70.01,
+        "mcc": 0.6596,
+        "tp": 900,
+        "tn": 4329,
+        "fp": 57,
+        "fn": 714
+      }
+    }
+  },
+  "NOVA-VAD-frame-v1": {
+    "overall": {
+      "accuracy": 87.83,
+      "precision": 83.23,
+      "recall": 68.59,
+      "f1": 75.2,
+      "mcc": 0.6779,
+      "tp": 1107,
+      "tn": 4163,
+      "fp": 223,
+      "fn": 507,
+      "accuracy_ci95": [
+        84.05,
+        91.57
+      ],
+      "ci_width": 7.52
+    },
+    "by_condition": {
+      "real_rtc_transmission": {
+        "accuracy": 87.83,
+        "precision": 83.23,
+        "recall": 68.59,
+        "f1": 75.2,
+        "mcc": 0.6779,
+        "tp": 1107,
+        "tn": 4163,
+        "fp": 223,
+        "fn": 507
+      }
+    }
+  },
+  "NOVA-VAD-frame-v2": {
+    "overall": {
+      "accuracy": 88.37,
+      "precision": 85.23,
+      "recall": 68.65,
+      "f1": 76.05,
+      "mcc": 0.6918,
+      "tp": 1108,
+      "tn": 4194,
+      "fp": 192,
+      "fn": 506,
+      "accuracy_ci95": [
+        84.52,
+        91.5
+      ],
+      "ci_width": 6.98
+    },
+    "by_condition": {
+      "real_rtc_transmission": {
+        "accuracy": 88.37,
+        "precision": 85.23,
+        "recall": 68.65,
+        "f1": 76.05,
+        "mcc": 0.6918,
+        "tp": 1108,
+        "tn": 4194,
+        "fp": 192,
+        "fn": 506
+      }
+    }
+  },
+  "Silero VAD": {
+    "overall": {
+      "accuracy": 86.8,
+      "precision": 93.72,
+      "recall": 54.58,
+      "f1": 68.99,
+      "mcc": 0.6495,
+      "tp": 881,
+      "tn": 4327,
+      "fp": 59,
+      "fn": 733,
+      "accuracy_ci95": [
+        83.55,
+        89.92
+      ],
+      "ci_width": 6.37
+    },
+    "by_condition": {
+      "real_rtc_transmission": {
+        "accuracy": 86.8,
+        "precision": 93.72,
+        "recall": 54.58,
+        "f1": 68.99,
+        "mcc": 0.6495,
+        "tp": 881,
+        "tn": 4327,
+        "fp": 59,
+        "fn": 733
+      }
+    }
+  },
+  "Pyannote VAD": {
+    "overall": {
+      "accuracy": 84.63,
+      "precision": 98.32,
+      "recall": 43.62,
+      "f1": 60.43,
+      "mcc": 0.5929,
+      "tp": 704,
+      "tn": 4374,
+      "fp": 12,
+      "fn": 910,
+      "accuracy_ci95": [
+        79.95,
+        89.07
+      ],
+      "ci_width": 9.12
+    },
+    "by_condition": {
+      "real_rtc_transmission": {
+        "accuracy": 84.63,
+        "precision": 98.32,
+        "recall": 43.62,
+        "f1": 60.43,
+        "mcc": 0.5929,
+        "tp": 704,
+        "tn": 4374,
+        "fp": 12,
+        "fn": 910
+      }
+    }
+  },
+  "SpeechBrain VAD": {
+    "overall": {
+      "accuracy": 69.32,
+      "precision": 45.89,
+      "recall": 78.56,
+      "f1": 57.94,
+      "mcc": 0.3957,
+      "tp": 1268,
+      "tn": 2891,
+      "fp": 1495,
+      "fn": 346,
+      "accuracy_ci95": [
+        50.83,
+        85.35
+      ],
+      "ci_width": 34.52
+    },
+    "by_condition": {
+      "real_rtc_transmission": {
+        "accuracy": 69.32,
+        "precision": 45.89,
+        "recall": 78.56,
+        "f1": 57.94,
+        "mcc": 0.3957,
+        "tp": 1268,
+        "tn": 2891,
+        "fp": 1495,
+        "fn": 346
+      }
+    }
+  }
+}

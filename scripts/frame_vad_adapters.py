@@ -92,14 +92,14 @@ def predict_mask_webrtc(audio_path, duration_ms, aggressiveness=3):
 
 
 # ── Silero: native segment timestamps -> mask ───────────────────────────────
-def predict_mask_silero(audio_path, model, duration_ms):
+def predict_mask_silero(audio_path, model, duration_ms, threshold=0.5):
     from silero_vad import get_speech_timestamps
     import torch
     import librosa
 
     audio, sr = librosa.load(audio_path, sr=16000, mono=True)
     wav = torch.FloatTensor(audio)
-    speeches = get_speech_timestamps(wav, model, sampling_rate=16000)
+    speeches = get_speech_timestamps(wav, model, sampling_rate=16000, threshold=threshold)
     intervals_ms = [(s["start"] / sr * 1000, s["end"] / sr * 1000) for s in speeches]
     return _mask_from_intervals_ms(duration_ms, intervals_ms)
 
@@ -116,15 +116,40 @@ def predict_mask_pyannote(audio_path, pipeline, duration_ms):
     return _mask_from_intervals_ms(duration_ms, intervals_ms)
 
 
+def build_pyannote_pipeline(min_duration_on=0.0, min_duration_off=0.0):
+    """onset/offset are NOT exposed as tunable pipeline parameters for
+    pyannote/segmentation-3.0 -- confirmed by direct experimentation
+    (pipeline.instantiate({'onset': ...}) raises
+    "ValueError: parameter 'onset' does not exist"). This is because
+    segmentation-3.0 is a powerset model, and pyannote's own source
+    (pyannote/audio/pipelines/voice_activity_detection.py) hardcodes
+    `self.onset = self.offset = 0.5` for powerset models instead of
+    exposing them as Uniform() tunable hyperparameters, which only
+    happens for non-powerset models. Only min_duration_on/min_duration_off
+    (post-processing durations) are genuinely tunable here -- see
+    reports/decision_v7.md Item 3 for the full documented finding."""
+    import os
+    from pyannote.audio import Model
+    from pyannote.audio.pipelines import VoiceActivityDetection
+
+    token = os.environ.get("HF_TOKEN")
+    pmodel = Model.from_pretrained("pyannote/segmentation-3.0", use_auth_token=token)
+    pipeline = VoiceActivityDetection(segmentation=pmodel)
+    pipeline.instantiate({"min_duration_on": min_duration_on, "min_duration_off": min_duration_off})
+    return pipeline
+
+
 # ── SpeechBrain: native boundaries -> mask ──────────────────────────────────
-def predict_mask_speechbrain(audio_path, vad_model, duration_ms, tmp_path="data/tmp_sb_frame.wav"):
+def predict_mask_speechbrain(audio_path, vad_model, duration_ms, tmp_path="data/tmp_sb_frame.wav",
+                              activation_th=0.5, deactivation_th=0.25):
     import os
     import librosa
 
     audio, sr = librosa.load(audio_path, sr=16000, mono=True)
     sf.write(tmp_path, audio, sr)
     try:
-        boundaries = vad_model.get_speech_segments(tmp_path)
+        boundaries = vad_model.get_speech_segments(
+            tmp_path, activation_th=activation_th, deactivation_th=deactivation_th)
     finally:
         if os.path.exists(tmp_path):
             os.remove(tmp_path)

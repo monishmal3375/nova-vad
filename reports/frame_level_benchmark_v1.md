@@ -1,5 +1,15 @@
 # NOVA-VAD Frame-Level Benchmark v1
 
+> **Superseded — see `reports/master_comparison_table.md` for current numbers.**
+> Discovered in round 4: this file's `WebRTC VAD`/`Silero VAD`/`Pyannote VAD`/
+> `SpeechBrain VAD`/`NOVA-VAD`/`NOVA-VAD-frame-v1` entries below are the
+> **original 40-scene `test` set's** results (only `NOVA-VAD-frame-v2` and
+> `NOVA-VAD-frame-v3` were ever regenerated here against `test_v2`, by
+> round 2/round 2's evaluate scripts appending to this same file). Left
+> as-is rather than silently corrected, since it's a real historical
+> artifact of what this file actually contained at each point — not
+> deleted, not quietly patched.
+
 Generated from 40 locked test scenes (`data/scenes/test/`), built from files never used to train NOVA-VAD, scored at 10ms frame resolution using each system's native output (see `scripts/frame_vad_adapters.py`).
 
 Scope: clean + 3 noise-level (SNR) conditions on speech mixed into the same file as noise/music. Codec/RTC transmission conditions and non-music hard negatives are **not yet covered** — see plan Section 7.2 Layers 3-4.

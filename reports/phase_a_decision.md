@@ -24,7 +24,7 @@ clean checklist.
 | **NOVA-VAD-frame-v3: REGRESSED, not deployed** | | | | | |
 | Logistic ensemble (v2 + Silero + Pyannote) | test_v2 | **85.0%** | **0.56** | 76.7% | 55.2% |
 | — for reference — | | | | | |
-| WebRTC VAD (default, aggressiveness=3 only) | test_v2 | 54.8% | 0.22 | 32.3% | 78.5% |
+| WebRTC VAD (**fair: aggressiveness=2**, was mode 3 through round 4 — see round 5 update below) | test_v2 | 52.2% | **0.24** | 31.9% | 85.5% |
 | SpeechBrain VAD (default) | test_v2 | 71.2% | 0.39 | 44.5% | 74.5% |
 | Pyannote VAD (default) | test_v2 | 84.5% | 0.54 | 79.0% | 49.7% |
 | Silero VAD (default) | test_v2 | 84.1% | 0.52 | 85.1% | 41.8% |
@@ -157,3 +157,96 @@ partially-closed gaps — not yet ✅. This document continues to not
 authorize Phase B; the remaining gap list above is offered as the
 concrete input for the project owner's Gate 1 decision, not a
 recommendation to proceed.
+
+---
+
+## Round 5 update (2026-07-23): pushed to close all three remaining gaps — one closes, two advance substantially but remain open
+
+Full methodology and numbers: `reports/decision_v7.md`,
+`reports/master_comparison_table.md`. Per the explicit instruction for
+this round, reporting exactly what closed and what didn't — a partial
+close is a fine outcome to report, a false "done" is not.
+
+### Item 0 (WebRTC mode fix) — ✅ fully closed
+Retroactively fixed in the master comparison table. Checked explicitly,
+not assumed: no keep/reduce/replace or ensembling conclusion changes.
+One real nuance surfaced and disclosed: WebRTC's best mode differs by
+condition (mode 3 actually beats NOVA-VAD-frame-v2 on clean audio
+specifically, even though mode 2 is the fair aggregate pick).
+
+### Item 1 (real RTC transmission, Plan Section 7.3 Layer 3) — 🟡 substantial, real progress; NOT fully closed
+A genuine `RTCPeerConnection` media path was built and verified working
+end-to-end this round — real ICE negotiation against a real STUN server
+(confirmed via a real public IP in the gathered candidates), real Opus
+encoding via the browser's native WebRTC audio pipeline, real RTP
+transport (confirmed via `getStats()` packet counts), captured and scored
+against ground truth for **5 scenes**. Two real implementation bugs were
+caught and fixed before trusting any result (`BroadcastChannel` couldn't
+clone `RTCSessionDescription`/`RTCIceCandidate` objects; `MediaRecorder`
+needed a playback-element sink to reliably capture a remote track's
+data), plus a false alignment match caught and corrected via the same
+verify-before-trust discipline used for round 4's codec bugs.
+
+**What's genuinely closed:** the claim "actual transmission has never been
+tested, only simulated codec transforms" is no longer true — it has been
+tested, with full sender/receiver/route/platform/capture documentation
+sufficient for independent verification.
+
+**What's still open, disclosed explicitly, not glossed over:**
+- Scale: 5 scenes is a pilot, not the ~25-scene statistical power the
+  codec test achieved. CIs here are wide (up to 34.5pp).
+- Network conditions: this was a real but easy path (localhost-resolved
+  host candidates, sub-millisecond RTT). Packet loss, jitter, and
+  congestion — the conditions where transmission testing matters most —
+  remain untested.
+- Device scope: both peers were tabs in the same browser process, not
+  genuinely different devices. A concrete next-step design is in
+  `reports/decision_v7.md` (two VoIP clients on separate machines with
+  virtual audio routing) but was not attempted this round.
+
+### Item 2 (hard negatives, Plan Section 7.2 Layer 4) — 🟡 substantial, real progress; NOT fully closed
+3 more categories added (overlapping speech, breathing, hold music) with
+full source/license documentation for each — bringing the total to 4 of
+~8 listed categories tested (DTMF from round 4 + these 3).
+NOVA-VAD-frame-v2 performed well: 0% false-positive rate on both pure
+hard-negative categories (matching Silero/Pyannote/SpeechBrain), and
+72.62% recall on overlapping speech (behind SpeechBrain's 89.15% but
+ahead of v1/Silero/Pyannote).
+
+**What's still open:** laughter, coughing, crying, singing (need
+authentic recordings this environment has no safe/verified way to source
+this round) and television (deferred specifically for licensing risk, as
+anticipated). 4-5 categories genuinely untested, not silently ignored —
+named explicitly above and in `reports/decision_v7.md`.
+
+### Item 3 (fair baseline tuning, Plan Section 7.4) — ✅ closed, within what each library's interface actually allows
+All three remaining baselines' public interfaces checked directly for a
+tunable threshold. Silero and SpeechBrain both have one and were tuned on
+`val`. **Pyannote's onset/offset turned out to not be tunable at all for
+`segmentation-3.0`** (a powerset model) — confirmed by direct
+experimentation (`instantiate()` raises `ValueError: parameter 'onset'
+does not exist`), not assumed from documentation; only its post-processing
+durations were tunable, and those were tuned. Single test_v2 evaluation:
+**Silero's fair-tuned threshold scored worse than its default** (MCC
+0.5096 vs 0.5218) — reported plainly as a real, non-flattering result,
+not suppressed or re-run for a better number. No ranking conclusions
+changed. This item is as closed as it can be given each library's actual
+capabilities — there is no further tunable surface being left unexplored.
+
+### Updated overall verdict
+
+**Phase A's release gate still does not fully close.** One of the three
+items pushed this round (fair baseline tuning) is now genuinely done.
+The other two (real transmission, hard negatives) both moved from "not
+attempted" to "real, verified, honestly-scoped partial progress with a
+named, bounded remainder" — which is exactly what was asked for when full
+closure wasn't guaranteed in one round. The concrete remainder, for
+whoever picks this up next:
+1. Scale the real-RTC pipeline (already built and working) to more scenes,
+   and add adverse network conditions and/or genuine cross-device
+   transmission.
+2. Source authentic laughter/coughing/crying/singing audio (needs a
+   verified clean-license path this round didn't have) and decide whether
+   television is worth pursuing given its IP risk.
+
+This document still does not authorize Phase B.

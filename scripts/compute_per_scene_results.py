@@ -29,9 +29,11 @@ from scripts.frame_vad_v2 import predict_mask_frame_v2, load_tuned_params as loa
 def load_scenes(scene_dir):
     scenes = []
     for json_path in sorted(glob.glob(os.path.join(scene_dir, "*.json"))):
+        wav_path = json_path.replace(".json", ".wav")
+        if not os.path.exists(wav_path):
+            continue  # skip aggregate manifest.json files with no matching scene .wav
         with open(json_path) as f:
             meta = json.load(f)
-        wav_path = json_path.replace(".json", ".wav")
         scenes.append((wav_path, meta))
     return scenes
 
@@ -95,7 +97,7 @@ def run_all_systems(scene_dir, output_path):
             scene_results.append({
                 "scene_id": meta["scene_id"],
                 "condition": meta["condition"],
-                "source_noise_file": meta["source_noise_file"],
+                "source_noise_file": meta.get("source_noise_file"),
                 "accuracy": round(acc, 2),
                 "pred": pred_trim,
                 "truth": truth_trim,

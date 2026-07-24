@@ -68,16 +68,39 @@ conditions' impact); a DTMF hard-negative test showed v2 handling it well
 (6.67% false-positive rate, better than v1's 17.0%). WebRTC, previously
 only tested at one aggressiveness mode, is now tested at all 4 — the
 mode used in every earlier comparison table (3) turns out not to be its
-best (mode 2 is, by MCC). **Phase A's release gate is still not fully
-closed**: actual RTC/transmission testing and 7 of 8 hard-negative
-categories remain open, disclosed explicitly rather than glossed over —
-see [`reports/decision_v6.md`](reports/decision_v6.md) and the round-4
-update in
-[`reports/phase_a_decision.md`](reports/phase_a_decision.md).
+best (mode 2 is, by MCC). Phase A's release gate was still not fully
+closed after round 4.
+
+**Round 5 pushed to close all three remaining gaps: one closes, two
+advance substantially but stay open, reported exactly as such.** (1)
+Fair baseline threshold tuning is now done for real — Silero and
+SpeechBrain both have tunable thresholds and were tuned on `val`;
+Pyannote's onset/offset turned out to **not be tunable at all** for the
+powerset model in use, confirmed by the library itself raising an error
+when tried, not assumed. Honest finding: Silero's fair-tuned threshold
+scored *worse* on `test_v2` than its untuned default (0.5096 vs 0.5218
+MCC) — reported plainly, no ranking conclusions changed either way. (2) A
+genuine `RTCPeerConnection` transmission path was built in-browser
+(real ICE/STUN negotiation confirmed via a real public IP in the
+gathered candidates, real Opus encoding, real RTP transport) and scored
+against ground truth for 5 scenes — real progress, but explicitly a
+pilot scale, same-machine loopback with no adverse network conditions
+tested, disclosed as such rather than oversold. Two implementation bugs
+were caught and fixed before trusting any recording. (3) Three more
+hard-negative categories added (overlapping speech, breathing, hold
+music, each with documented source/license) — NOVA-VAD-v2 hit 0% false
+positives on both pure hard-negative categories, matching every neural
+baseline. Four to five categories (laughter, coughing, crying, singing,
+TV) remain untested, explicitly deferred rather than faked with
+unreliable synthesis. **Full accounting of what's closed vs. still open:**
+[`reports/decision_v7.md`](reports/decision_v7.md) and the round-5 update
+in [`reports/phase_a_decision.md`](reports/phase_a_decision.md).
 
 Full results in
-[`reports/frame_level_benchmark_v1.md`](reports/frame_level_benchmark_v1.md);
-the decision writeups are
+[`reports/frame_level_benchmark_v1.md`](reports/frame_level_benchmark_v1.md)
+(superseded — see
+[`reports/master_comparison_table.md`](reports/master_comparison_table.md)
+for the current authoritative table); the decision writeups are
 [`reports/decision_v1.md`](reports/decision_v1.md) (why v0 failed),
 [`reports/decision_v2.md`](reports/decision_v2.md) (v1's fix),
 [`reports/decision_v3.md`](reports/decision_v3.md) (v2's noise-robustness
@@ -85,9 +108,12 @@ pass),
 [`reports/decision_v4.md`](reports/decision_v4.md) (round 2: benchmark
 validity fix, both open flags resolved, v3 negative result),
 [`reports/decision_v5.md`](reports/decision_v5.md) (round 3: the
-ensembling test), and
+ensembling test),
 [`reports/decision_v6.md`](reports/decision_v6.md) (round 4: codec/
-hard-negative/WebRTC-mode testing). Evidence package for v2:
+hard-negative/WebRTC-mode testing), and
+[`reports/decision_v7.md`](reports/decision_v7.md) (round 5: real RTC
+transmission, more hard negatives, fair baseline tuning). Evidence
+package for v2:
 [`reports/evidence_package_index.md`](reports/evidence_package_index.md).
 The 93%/92% numbers below are still real, but they measure a much narrower
 task (whole-file classification, not frame-level detection — see next

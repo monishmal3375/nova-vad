@@ -19,7 +19,15 @@ build/
 .env
 data/mic_speech/
 data/mic_noise/
-data/scenes/
+data/scenes/*
+# data/scenes/test_v2_rtc/ is NOT ignored (see below) -- unlike every other
+# scenes/ subdirectory, it is not reproducible from a script+seed alone
+# (it required live browser RTCPeerConnection interaction) and is
+# committed as irreplaceable evidence for reports/decision_v7.md's real
+# RTC transmission test. (Note: data/scenes/* not data/scenes/ -- a plain
+# directory-level ignore blocks git from traversing into it at all, which
+# makes a later "!" negation of a subdirectory silently not work.)
+!data/scenes/test_v2_rtc
 data/manifests/
 models/frame_vad_v1_hysteresis.json
 models/frame_vad_v2_hysteresis.json

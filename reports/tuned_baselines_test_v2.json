@@ -1,0 +1,191 @@
+{
+  "Silero VAD (fair, tuned)": {
+    "overall": {
+      "accuracy": 83.43,
+      "precision": 73.46,
+      "recall": 49.91,
+      "f1": 59.43,
+      "mcc": 0.5096,
+      "tp": 14565,
+      "tn": 85552,
+      "fp": 5263,
+      "fn": 14620,
+      "accuracy_ci95": [
+        81.5,
+        85.17
+      ]
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 87.48,
+        "precision": 92.89,
+        "recall": 51.86,
+        "f1": 66.56,
+        "mcc": 0.6344,
+        "tp": 3738,
+        "tn": 22506,
+        "fp": 286,
+        "fn": 3470
+      },
+      "snr_10db": {
+        "accuracy": 84.5,
+        "precision": 72.48,
+        "recall": 56.11,
+        "f1": 63.25,
+        "mcc": 0.5434,
+        "tp": 4003,
+        "tn": 21346,
+        "fp": 1520,
+        "fn": 3131
+      },
+      "snr_0db": {
+        "accuracy": 81.48,
+        "precision": 65.7,
+        "recall": 52.94,
+        "f1": 58.64,
+        "mcc": 0.4734,
+        "tp": 3938,
+        "tn": 20506,
+        "fp": 2056,
+        "fn": 3500
+      },
+      "snr_-5db": {
+        "accuracy": 80.27,
+        "precision": 67.32,
+        "recall": 38.97,
+        "f1": 49.37,
+        "mcc": 0.4038,
+        "tp": 2886,
+        "tn": 21194,
+        "fp": 1401,
+        "fn": 4519
+      }
+    }
+  },
+  "SpeechBrain VAD (fair, tuned)": {
+    "overall": {
+      "accuracy": 71.21,
+      "precision": 44.51,
+      "recall": 74.47,
+      "f1": 55.72,
+      "mcc": 0.3898,
+      "tp": 21735,
+      "tn": 63719,
+      "fp": 27096,
+      "fn": 7450,
+      "accuracy_ci95": [
+        68.44,
+        73.81
+      ]
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 73.8,
+        "precision": 47.46,
+        "recall": 84.66,
+        "f1": 60.83,
+        "mcc": 0.475,
+        "tp": 6102,
+        "tn": 16038,
+        "fp": 6754,
+        "fn": 1106
+      },
+      "snr_10db": {
+        "accuracy": 73.46,
+        "precision": 46.79,
+        "recall": 84.59,
+        "f1": 60.26,
+        "mcc": 0.4694,
+        "tp": 6035,
+        "tn": 16004,
+        "fp": 6862,
+        "fn": 1099
+      },
+      "snr_0db": {
+        "accuracy": 67.42,
+        "precision": 41.36,
+        "recall": 75.15,
+        "f1": 53.36,
+        "mcc": 0.3474,
+        "tp": 5590,
+        "tn": 14637,
+        "fp": 7925,
+        "fn": 1848
+      },
+      "snr_-5db": {
+        "accuracy": 70.16,
+        "precision": 41.91,
+        "recall": 54.13,
+        "f1": 47.24,
+        "mcc": 0.2733,
+        "tp": 4008,
+        "tn": 17040,
+        "fp": 5555,
+        "fn": 3397
+      }
+    }
+  },
+  "Pyannote VAD (fair, tuned)": {
+    "overall": {
+      "accuracy": 84.56,
+      "precision": 78.94,
+      "recall": 49.8,
+      "f1": 61.07,
+      "mcc": 0.542,
+      "tp": 14534,
+      "tn": 86937,
+      "fp": 3878,
+      "fn": 14651,
+      "accuracy_ci95": [
+        82.58,
+        86.28
+      ]
+    },
+    "by_condition": {
+      "clean": {
+        "accuracy": 86.82,
+        "precision": 94.09,
+        "recall": 48.18,
+        "f1": 63.73,
+        "mcc": 0.6143,
+        "tp": 3473,
+        "tn": 22574,
+        "fp": 218,
+        "fn": 3735
+      },
+      "snr_10db": {
+        "accuracy": 82.89,
+        "precision": 68.09,
+        "recall": 52.82,
+        "f1": 59.49,
+        "mcc": 0.495,
+        "tp": 3768,
+        "tn": 21100,
+        "fp": 1766,
+        "fn": 3366
+      },
+      "snr_0db": {
+        "accuracy": 84.47,
+        "precision": 78.95,
+        "recall": 50.93,
+        "f1": 61.92,
+        "mcc": 0.5472,
+        "tp": 3788,
+        "tn": 21552,
+        "fp": 1010,
+        "fn": 3650
+      },
+      "snr_-5db": {
+        "accuracy": 84.05,
+        "precision": 79.86,
+        "recall": 47.33,
+        "f1": 59.44,
+        "mcc": 0.5297,
+        "tp": 3505,
+        "tn": 21711,
+        "fp": 884,
+        "fn": 3900
+      }
+    }
+  }
+}

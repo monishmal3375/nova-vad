@@ -99,8 +99,8 @@ are product and legal questions, not modeling questions.
 |---|---|---|
 | Locked train/development/test manifests with grouped sources | ✅ Done | `reports/data_manifest_and_leakage_audit.md` (this round — consolidates and re-verifies checks previously only shown in chat output across rounds 2-3) |
 | Frame-level ground truth and a common scoring grid | ✅ Done | `frame_labels_10ms` in every scene manifest; all 7 systems scored on this same 10ms grid via `scripts/frame_vad_adapters.py` + `scripts/frame_benchmark.py` |
-| Raw, degraded, hard-negative, and actual-transmission results | 🟡 **Partial — real gap** | Layer 1 (clean) ✅ and Layer 2 (noise/SNR: 10dB/0dB/-5dB) ✅ covered. **Layer 3 (codec/RTC transmission: G.711, Opus, AMR, packet loss) NOT tested anywhere in this project.** **Layer 4 (hard negatives beyond music: laughter, coughing, DTMF, overlapping speech, hold music) NOT tested** — noise sources are MUSAN noise+music only. |
-| Pinned and fairly tuned baselines | 🟡 **Partial** | Versions ARE pinned and committed (`requirements-benchmark.txt`: silero-vad==6.2.1, pyannote-audio==4.0.4, speechbrain==1.1.0; `requirements-runtime.txt`: webrtcvad==2.0.10). **NOT "fairly tuned" per plan Section 7.4's specific meaning**: all four baselines are run at their out-of-box default operating points, not tuned on `dev`/`val`. WebRTC specifically is only tested at aggressiveness=3 (most aggressive) — the plan explicitly calls for testing all 4 modes and reporting the selected mode plus all modes; this project has only ever tested one. |
+| Raw, degraded, hard-negative, and actual-transmission results | 🟡 **Partial — narrower gap than before, still not closed** (updated round 4, see below) | Layer 1 (clean) ✅, Layer 2 (noise/SNR) ✅. Layer 3: simulated codec (G.711 A-law/mu-law, Opus 24kbps) ✅ **now tested** (`reports/decision_v6.md`); actual RTC/transmission (packet loss, jitter, real network conditions) still ❌ not tested — a materially different, larger undertaking than simulated codec round-trip. Layer 4: 1 of ~8 hard-negative categories (DTMF) ✅ now tested; 7 remain (laughter, coughing, crying, singing, TV, hold music, breathing, overlapping speech) ❌ explicitly deferred — need real audio sources this project doesn't have yet. |
+| Pinned and fairly tuned baselines | 🟡 **Partial — WebRTC sub-gap closed, broader gap remains** (updated round 4) | Versions pinned ✅ (unchanged). WebRTC now tested at all 4 aggressiveness modes ✅ (`reports/decision_v6.md`) — and the previously-reported mode 3 turned out to be worst-by-MCC of the four (0.2236 vs. best mode 2's 0.2424), meaning every prior round's WebRTC number in the comparison tables was real but not WebRTC's best achievable result. **Silero/Pyannote/SpeechBrain are still only run at out-of-box default settings, not tuned on `dev`/`val`** — this remains open, and finding a real, non-trivial gap in WebRTC's "obvious" default this round is a reason to take that remaining gap more seriously, not less. |
 | Confidence intervals and per-condition failure analysis | ✅ Done | Cluster-bootstrap CIs (`scripts/frame_benchmark.py:cluster_bootstrap_ci`) and per-condition breakdowns throughout `decision_v3.md`/`v4.md`; round 2's LONO analysis additionally validated the per-condition numbers are now trustworthy (`reports/per_scene_test_original_lono.json`) |
 | A documented decision to keep, reduce, fine-tune, or replace the current ensemble | ✅ Done (this document) | Decision above: keep NOVA-VAD-frame-v2, combination is the productive path, standalone scaling is not |
 
@@ -112,3 +112,48 @@ Per the explicit instruction for this round: this document does not start
 or authorize Phase B (anti-spoofing) work, regardless of how the checklist
 above reads. That is Gate 1 sign-off, made by the project owner after
 reviewing this report and the evidence package.
+
+---
+
+## Round 4 update (2026-07-23): checklist re-assessed, gate is NOT fully closeable yet
+
+Full methodology and numbers: `reports/decision_v6.md`. Honest verdict,
+stated plainly per this round's explicit instruction not to treat
+"attempted" as "closed":
+
+**Real, verified progress on both previously-partial items:**
+- Codec degradation (G.711 A-law/mu-law, Opus) tested for the first time
+  — closes the "zero codec testing" gap specifically. Finding: codec
+  degradation barely hurts any system tested, NOVA-VAD-frame-v2 included
+  (MCC -0.025 vs. clean, far smaller than the -0.22-ish drop seen under
+  additive noise).
+- One hard-negative category (DTMF) tested — NOVA-VAD-frame-v2 handles it
+  well (6.67% false-positive rate, better than v1's 17.0%, competitive
+  with WebRTC/Pyannote, though behind Silero's 0% and SpeechBrain's 0.81%).
+- WebRTC now tested at all 4 aggressiveness modes — the "only 1 mode
+  tested" sub-gap is fully closed. Real finding: the previously-reported
+  mode (3) was not WebRTC's best (mode 2 is, by MCC).
+
+**What remains open, not closed by this round:**
+1. Actual RTC/transmission testing (packet loss, jitter, real network
+   conditions) — not started, and explicitly not conflated with the
+   simulated-codec work that was done.
+2. 7 of 8 hard-negative categories (laughter, coughing, crying, singing,
+   TV, hold music, breathing, overlapping speech) — not started, deferred
+   because they need real audio sources this project doesn't currently
+   have and rushing that sourcing risks licensing/leakage problems.
+3. Silero/Pyannote/SpeechBrain threshold tuning on `dev`/`val` — not
+   started. Only WebRTC's operating-point selection was addressed. The
+   WebRTC finding (a real, non-trivial gap hiding in an "obvious" default)
+   is a reason to weight this remaining item as more important, not less.
+
+**Verdict: Phase A's release-gate checklist is not fully met.** Two items
+moved from "wide open" to "meaningfully narrowed, real gaps clearly
+bounded" — that is genuine progress, not just an attempt, but it is not
+the same as closure. The items marked ✅ in the table above (manifests,
+scoring grid, CIs/per-condition analysis, the keep/reduce/replace
+decision itself) remain solid. The two 🟡 items are real, named,
+partially-closed gaps — not yet ✅. This document continues to not
+authorize Phase B; the remaining gap list above is offered as the
+concrete input for the project owner's Gate 1 decision, not a
+recommendation to proceed.

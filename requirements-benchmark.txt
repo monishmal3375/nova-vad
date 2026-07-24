@@ -7,6 +7,7 @@
 # that's the actual cost of running the comparison, not of running NOVA-VAD.
 
 silero-vad==6.2.1
+av==18.0.0
 torch==2.12.1
 torchaudio==2.11.0
 torchcodec==0.14.0

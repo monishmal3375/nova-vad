@@ -61,9 +61,19 @@ product/licensing decision, not a modeling one — see
 verdict: **NOVA-VAD-frame-v2 is kept as the standalone model**;
 standalone architecture scaling looks exhausted (v3 regressed), but
 combination is a real, separately-evaluated open path.
-[`reports/phase_a_decision.md`](reports/phase_a_decision.md) also closes
-out the Phase A release-gate checklist honestly — codec/transmission and
-non-music hard-negative testing are confirmed gaps, not yet done.
+**Round 4 closed part of the codec/hard-negative gap**: simulated G.711
+(A-law/mu-law) and Opus codec degradation barely hurt any system tested,
+NOVA-VAD-v2 included (MCC -0.025 vs. clean — far smaller than the noise
+conditions' impact); a DTMF hard-negative test showed v2 handling it well
+(6.67% false-positive rate, better than v1's 17.0%). WebRTC, previously
+only tested at one aggressiveness mode, is now tested at all 4 — the
+mode used in every earlier comparison table (3) turns out not to be its
+best (mode 2 is, by MCC). **Phase A's release gate is still not fully
+closed**: actual RTC/transmission testing and 7 of 8 hard-negative
+categories remain open, disclosed explicitly rather than glossed over —
+see [`reports/decision_v6.md`](reports/decision_v6.md) and the round-4
+update in
+[`reports/phase_a_decision.md`](reports/phase_a_decision.md).
 
 Full results in
 [`reports/frame_level_benchmark_v1.md`](reports/frame_level_benchmark_v1.md);
@@ -73,9 +83,11 @@ the decision writeups are
 [`reports/decision_v3.md`](reports/decision_v3.md) (v2's noise-robustness
 pass),
 [`reports/decision_v4.md`](reports/decision_v4.md) (round 2: benchmark
-validity fix, both open flags resolved, v3 negative result), and
+validity fix, both open flags resolved, v3 negative result),
 [`reports/decision_v5.md`](reports/decision_v5.md) (round 3: the
-ensembling test). Evidence package for v2:
+ensembling test), and
+[`reports/decision_v6.md`](reports/decision_v6.md) (round 4: codec/
+hard-negative/WebRTC-mode testing). Evidence package for v2:
 [`reports/evidence_package_index.md`](reports/evidence_package_index.md).
 The 93%/92% numbers below are still real, but they measure a much narrower
 task (whole-file classification, not frame-level detection — see next

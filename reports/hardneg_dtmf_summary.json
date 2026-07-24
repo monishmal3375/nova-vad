@@ -1,0 +1,30 @@
+{
+  "NOVA-VAD": {
+    "false_positive_rate_pct": 75.21,
+    "total_frames": 12000
+  },
+  "WebRTC VAD": {
+    "false_positive_rate_pct": 7.07,
+    "total_frames": 12000
+  },
+  "NOVA-VAD-frame-v1": {
+    "false_positive_rate_pct": 17.0,
+    "total_frames": 12000
+  },
+  "NOVA-VAD-frame-v2": {
+    "false_positive_rate_pct": 6.67,
+    "total_frames": 12000
+  },
+  "Silero VAD": {
+    "false_positive_rate_pct": 0.0,
+    "total_frames": 12000
+  },
+  "Pyannote VAD": {
+    "false_positive_rate_pct": 9.22,
+    "total_frames": 12000
+  },
+  "SpeechBrain VAD": {
+    "false_positive_rate_pct": 0.81,
+    "total_frames": 12000
+  }
+}

@@ -1,0 +1,257 @@
+{
+  "results": {
+    "WebRTC VAD (aggressiveness=0)": {
+      "overall": {
+        "accuracy": 46.93,
+        "precision": 30.35,
+        "recall": 91.28,
+        "f1": 45.55,
+        "mcc": 0.2319,
+        "tp": 26639,
+        "tn": 29674,
+        "fp": 61141,
+        "fn": 2546,
+        "accuracy_ci95": [
+          41.75,
+          52.23
+        ]
+      },
+      "by_condition": {
+        "clean": {
+          "accuracy": 79.6,
+          "precision": 54.82,
+          "recall": 85.92,
+          "f1": 66.93,
+          "mcc": 0.5601,
+          "tp": 6193,
+          "tn": 17687,
+          "fp": 5105,
+          "fn": 1015
+        },
+        "snr_10db": {
+          "accuracy": 41.13,
+          "precision": 27.39,
+          "recall": 89.35,
+          "f1": 41.92,
+          "mcc": 0.1576,
+          "tp": 6374,
+          "tn": 5966,
+          "fp": 16900,
+          "fn": 760
+        },
+        "snr_0db": {
+          "accuracy": 34.32,
+          "precision": 26.82,
+          "recall": 95.36,
+          "f1": 41.86,
+          "mcc": 0.1279,
+          "tp": 7093,
+          "tn": 3204,
+          "fp": 19358,
+          "fn": 345
+        },
+        "snr_-5db": {
+          "accuracy": 32.65,
+          "precision": 26.08,
+          "recall": 94.25,
+          "f1": 40.86,
+          "mcc": 0.0932,
+          "tp": 6979,
+          "tn": 2817,
+          "fp": 19778,
+          "fn": 426
+        }
+      }
+    },
+    "WebRTC VAD (aggressiveness=1)": {
+      "overall": {
+        "accuracy": 48.66,
+        "precision": 30.85,
+        "recall": 89.46,
+        "f1": 45.87,
+        "mcc": 0.2353,
+        "tp": 26108,
+        "tn": 32281,
+        "fp": 58534,
+        "fn": 3077,
+        "accuracy_ci95": [
+          43.15,
+          54.09
+        ]
+      },
+      "by_condition": {
+        "clean": {
+          "accuracy": 81.53,
+          "precision": 57.83,
+          "recall": 85.42,
+          "f1": 68.97,
+          "mcc": 0.5868,
+          "tp": 6157,
+          "tn": 18302,
+          "fp": 4490,
+          "fn": 1051
+        },
+        "snr_10db": {
+          "accuracy": 43.38,
+          "precision": 27.65,
+          "recall": 85.45,
+          "f1": 41.78,
+          "mcc": 0.1515,
+          "tp": 6096,
+          "tn": 6918,
+          "fp": 15948,
+          "fn": 1038
+        },
+        "snr_0db": {
+          "accuracy": 35.58,
+          "precision": 26.96,
+          "recall": 93.53,
+          "f1": 41.86,
+          "mcc": 0.1245,
+          "tp": 6957,
+          "tn": 3716,
+          "fp": 18846,
+          "fn": 481
+        },
+        "snr_-5db": {
+          "accuracy": 34.14,
+          "precision": 26.38,
+          "recall": 93.15,
+          "f1": 41.12,
+          "mcc": 0.1026,
+          "tp": 6898,
+          "tn": 3345,
+          "fp": 19250,
+          "fn": 507
+        }
+      }
+    },
+    "WebRTC VAD (aggressiveness=2)": {
+      "overall": {
+        "accuracy": 52.15,
+        "precision": 31.93,
+        "recall": 85.5,
+        "f1": 46.5,
+        "mcc": 0.2424,
+        "tp": 24953,
+        "tn": 37627,
+        "fp": 53188,
+        "fn": 4232,
+        "accuracy_ci95": [
+          46.77,
+          57.78
+        ]
+      },
+      "by_condition": {
+        "clean": {
+          "accuracy": 85.9,
+          "precision": 67.66,
+          "recall": 79.16,
+          "f1": 72.96,
+          "mcc": 0.6387,
+          "tp": 5706,
+          "tn": 20065,
+          "fp": 2727,
+          "fn": 1502
+        },
+        "snr_10db": {
+          "accuracy": 48.3,
+          "precision": 29.09,
+          "recall": 81.67,
+          "f1": 42.9,
+          "mcc": 0.1767,
+          "tp": 5826,
+          "tn": 8664,
+          "fp": 14202,
+          "fn": 1308
+        },
+        "snr_0db": {
+          "accuracy": 38.1,
+          "precision": 27.38,
+          "recall": 90.59,
+          "f1": 42.05,
+          "mcc": 0.128,
+          "tp": 6738,
+          "tn": 4691,
+          "fp": 17871,
+          "fn": 700
+        },
+        "snr_-5db": {
+          "accuracy": 36.3,
+          "precision": 26.66,
+          "recall": 90.25,
+          "f1": 41.16,
+          "mcc": 0.1032,
+          "tp": 6683,
+          "tn": 4207,
+          "fp": 18388,
+          "fn": 722
+        }
+      }
+    },
+    "WebRTC VAD (aggressiveness=3)": {
+      "overall": {
+        "accuracy": 54.75,
+        "precision": 32.3,
+        "recall": 78.52,
+        "f1": 45.77,
+        "mcc": 0.2236,
+        "tp": 22915,
+        "tn": 42780,
+        "fp": 48035,
+        "fn": 6270,
+        "accuracy_ci95": [
+          49.35,
+          60.34
+        ]
+      },
+      "by_condition": {
+        "clean": {
+          "accuracy": 89.93,
+          "precision": 94.44,
+          "recall": 61.71,
+          "f1": 74.64,
+          "mcc": 0.7112,
+          "tp": 4448,
+          "tn": 22530,
+          "fp": 262,
+          "fn": 2760
+        },
+        "snr_10db": {
+          "accuracy": 50.19,
+          "precision": 29.58,
+          "recall": 79.28,
+          "f1": 43.08,
+          "mcc": 0.1806,
+          "tp": 5656,
+          "tn": 9400,
+          "fp": 13466,
+          "fn": 1478
+        },
+        "snr_0db": {
+          "accuracy": 39.54,
+          "precision": 27.43,
+          "recall": 87.39,
+          "f1": 41.75,
+          "mcc": 0.1183,
+          "tp": 6500,
+          "tn": 5362,
+          "fp": 17200,
+          "fn": 938
+        },
+        "snr_-5db": {
+          "accuracy": 39.33,
+          "precision": 26.95,
+          "recall": 85.23,
+          "f1": 40.95,
+          "mcc": 0.0991,
+          "tp": 6311,
+          "tn": 5488,
+          "fp": 17107,
+          "fn": 1094
+        }
+      }
+    }
+  },
+  "best_mode": "WebRTC VAD (aggressiveness=2)"
+}
